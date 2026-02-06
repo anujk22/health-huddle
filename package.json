@@ -1,0 +1,21 @@
+{
+  "name": "healthhuddle",
+  "version": "1.0.0",
+  "description": "Medical AI consultation platform with 4 debating agents",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node backend/server.js",
+    "client": "cd frontend && npm run dev",
+    "install:all": "npm install && cd frontend && npm install"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
