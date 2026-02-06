@@ -1,9 +1,10 @@
-import { generateAgentResponse, checkRedFlags } from './geminiService.js';
+import { generateAgentResponse, generateFollowUpQuestion } from './geminiService.js';
 import { getMedicalSources } from '../data/sources.js';
 import { agentConfig } from '../config.js';
 
-// Store interjections by session
+// Store interjections and question responses by session
 const sessionInterjections = new Map();
+const pendingQuestions = new Map();
 
 export function addInterjection(sessionId, message) {
     if (!sessionInterjections.has(sessionId)) {
@@ -14,6 +15,21 @@ export function addInterjection(sessionId, message) {
         timestamp: Date.now(),
         processed: false
     });
+
+    // Also resolve any pending question
+    if (pendingQuestions.has(sessionId)) {
+        const { resolve } = pendingQuestions.get(sessionId);
+        pendingQuestions.delete(sessionId);
+        resolve(message);
+    }
+}
+
+export function skipQuestion(sessionId) {
+    if (pendingQuestions.has(sessionId)) {
+        const { resolve } = pendingQuestions.get(sessionId);
+        pendingQuestions.delete(sessionId);
+        resolve(null);
+    }
 }
 
 function getUnprocessedInterjection(sessionId) {
@@ -31,15 +47,30 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function runDebate(patientInput, onEvent) {
-    const { symptoms, painLevel, duration } = patientInput;
-    const sessionId = `session_${Date.now()}`;
+// Wait for user response with timeout
+function waitForUserResponse(sessionId, timeoutMs) {
+    return new Promise((resolve) => {
+        pendingQuestions.set(sessionId, { resolve });
+
+        // Auto-resolve after timeout
+        setTimeout(() => {
+            if (pendingQuestions.has(sessionId)) {
+                pendingQuestions.delete(sessionId);
+                resolve(null); // null means timeout/skipped
+            }
+        }, timeoutMs);
+    });
+}
+
+export async function runDebate(patientInput, onEvent, sessionId) {
+    const { symptoms } = patientInput;
+    const actualSessionId = sessionId || `session_${Date.now()}`;
 
     // Initialize sources
     const sources = getMedicalSources(symptoms);
 
     // Get timing config
-    const { readingPauseMs, beforeConsensusPauseMs } = agentConfig.timing;
+    const { readingPauseMs, beforeConsensusPauseMs, questionTimeoutMs } = agentConfig.timing;
 
     // Send initial status
     onEvent({
@@ -48,27 +79,11 @@ export async function runDebate(patientInput, onEvent) {
         phase: 'initialization'
     });
 
-    // Check for red flags first
-    const redFlagCheck = await checkRedFlags(symptoms);
-
-    if (redFlagCheck.isEmergency) {
-        onEvent({
-            type: 'emergency',
-            condition: redFlagCheck.condition,
-            message: 'STOP: Please call emergency services (911) immediately or go to the nearest emergency room.',
-            reasoning: redFlagCheck.reasoning
-        });
-        return;
-    }
-
-    onEvent({
-        type: 'status',
-        message: 'Starting team consultation... (You can add information anytime below)',
-        phase: 'debate'
-    });
-
     const messages = [];
     const agentOrder = ['guidelines', 'evidence', 'cases', 'safety'];
+
+    // Questions that agents might ask (one per agent, alternating)
+    const shouldAskQuestion = [true, false, true, false]; // Guidelines and Cases ask questions
 
     // Run through each agent
     for (let i = 0; i < agentOrder.length; i++) {
@@ -76,7 +91,7 @@ export async function runDebate(patientInput, onEvent) {
         const agentInfo = agentConfig.agents[agent];
 
         // Check for patient interjection before each agent speaks
-        const interjection = getUnprocessedInterjection(sessionId);
+        const interjection = getUnprocessedInterjection(actualSessionId);
 
         onEvent({
             type: 'agent_speaking',
@@ -86,8 +101,6 @@ export async function runDebate(patientInput, onEvent) {
 
         const context = {
             symptoms,
-            painLevel,
-            duration,
             previousMessages: messages.map(m => `${m.agent}: ${m.text}`).join('\n\n'),
             interjection,
             agentNames: Object.fromEntries(
@@ -116,14 +129,55 @@ export async function runDebate(patientInput, onEvent) {
                 ...message
             });
 
-            // Add reading pause after each message (except the last one before consensus)
+            // Reading pause
+            await sleep(readingPauseMs);
+
+            // Ask a follow-up question if this agent should
+            if (shouldAskQuestion[i] && i < agentOrder.length - 1) {
+                const question = await generateFollowUpQuestion(agent, symptoms, messages);
+
+                if (question) {
+                    onEvent({
+                        type: 'agent_question',
+                        agent: agentInfo.name,
+                        question: question,
+                        timeoutSeconds: Math.floor(questionTimeoutMs / 1000)
+                    });
+
+                    // Wait for user response (with timeout)
+                    const userAnswer = await waitForUserResponse(actualSessionId, questionTimeoutMs);
+
+                    if (userAnswer) {
+                        // Add the answer as context for next agents
+                        messages.push({
+                            agent: 'Patient',
+                            text: userAnswer,
+                            isPatient: true,
+                            timestamp: new Date().toISOString()
+                        });
+
+                        onEvent({
+                            type: 'patient_response',
+                            message: userAnswer,
+                            timestamp: new Date().toISOString()
+                        });
+                    } else {
+                        onEvent({
+                            type: 'status',
+                            message: 'Moving on...',
+                            phase: 'debate'
+                        });
+                    }
+                }
+            }
+
+            // Status update for next agent
             if (i < agentOrder.length - 1) {
                 onEvent({
                     type: 'status',
-                    message: `Take your time to read... ${agentConfig.agents[agentOrder[i + 1]].name} is preparing their thoughts`,
+                    message: `${agentConfig.agents[agentOrder[i + 1]].name} is preparing their thoughts...`,
                     phase: 'reading_pause'
                 });
-                await sleep(readingPauseMs);
             }
 
         } catch (error) {
@@ -139,13 +193,13 @@ export async function runDebate(patientInput, onEvent) {
     // Pause before consensus to allow final interjections
     onEvent({
         type: 'status',
-        message: 'All agents have spoken. Add any final details now before we summarize...',
+        message: 'All agents have spoken. Building consensus...',
         phase: 'pre_consensus'
     });
     await sleep(beforeConsensusPauseMs);
 
     // Check for any last-minute interjections
-    const finalInterjection = getUnprocessedInterjection(sessionId);
+    const finalInterjection = getUnprocessedInterjection(actualSessionId);
 
     // Generate consensus
     onEvent({
@@ -157,8 +211,6 @@ export async function runDebate(patientInput, onEvent) {
     try {
         const consensusContext = {
             symptoms,
-            painLevel,
-            duration,
             previousMessages: messages.map(m => `${m.agent}: ${m.text}`).join('\n\n'),
             interjection: finalInterjection,
             agentNames: Object.fromEntries(
@@ -179,7 +231,7 @@ export async function runDebate(patientInput, onEvent) {
             text: consensusResponse,
             urgency,
             sources: allSources,
-            agentMessages: messages
+            agentMessages: messages.filter(m => !m.isPatient)
         });
 
     } catch (error) {
@@ -191,7 +243,7 @@ export async function runDebate(patientInput, onEvent) {
     }
 
     // Cleanup
-    sessionInterjections.delete(sessionId);
+    sessionInterjections.delete(actualSessionId);
 }
 
 function parseUrgency(consensusText) {

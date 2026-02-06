@@ -167,3 +167,49 @@ Respond with JSON only:
         return { isEmergency: false };
     }
 }
+
+export async function generateFollowUpQuestion(agentType, symptoms, previousMessages) {
+    await waitForRateLimit();
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+
+    const agentQuestionStyles = {
+        guidelines: 'Ask about specific symptoms that would help determine the right clinical pathway or scoring criteria.',
+        evidence: 'Ask about factors that research shows are important for differential diagnosis.',
+        cases: 'Ask about practical details that would help narrow down what typically happens in similar cases.',
+        safety: 'Ask about warning signs or risk factors that could indicate something more serious.'
+    };
+
+    const prompt = `You are a medical AI assistant. Based on the consultation so far, generate ONE short, relevant follow-up question to ask the patient.
+
+Patient's symptoms: ${symptoms}
+
+Previous discussion:
+${previousMessages.map(m => `${m.agent}: ${m.text}`).join('\n')}
+
+Your style: ${agentQuestionStyles[agentType] || 'Ask a relevant clarifying question.'}
+
+RULES:
+- Ask only ONE question
+- Make it simple and easy to answer quickly
+- Focus on information that would genuinely help the diagnosis
+- Use plain language, no medical jargon
+- Keep it under 15 words if possible
+
+Respond with ONLY the question, nothing else.`;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const question = response.text().trim();
+
+        // Only return if it looks like a reasonable question
+        if (question.length > 10 && question.length < 200) {
+            return question;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error generating follow-up question:', error);
+        return null;
+    }
+}

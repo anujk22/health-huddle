@@ -33,10 +33,13 @@ export const agentConfig = {
 
         // Additional "reading time" pause after each message appears
         // This gives patients time to read before the next message
-        readingPauseMs: 4000,
+        readingPauseMs: 3000,
 
         // Pause before showing consensus (gives time for final interjections)
-        beforeConsensusPauseMs: 5000
+        beforeConsensusPauseMs: 3000,
+
+        // How long to wait for user to answer a question before moving on
+        questionTimeoutMs: 10000
     },
 
     // UI Configuration

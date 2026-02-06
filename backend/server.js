@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { runDebate, addInterjection } from './services/debateOrchestrator.js';
+import { runDebate, addInterjection, skipQuestion } from './services/debateOrchestrator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -108,6 +108,12 @@ app.post('/api/debate/current/interject', async (req, res) => {
 
 // Skip question endpoint
 app.post('/api/debate/current/skip-question', (req, res) => {
+    // Get most recent session and skip its pending question
+    const sessions = Array.from(activeConnections.keys());
+    if (sessions.length > 0) {
+        const sessionId = sessions[sessions.length - 1];
+        skipQuestion(sessionId);
+    }
     res.json({ success: true, message: 'Question skipped' });
 });
 

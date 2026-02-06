@@ -3,7 +3,7 @@ import { appConfig } from '../config';
 
 function AgentQuestion({ question, onAnswer }) {
     const [answer, setAnswer] = useState('');
-    const [timeLeft, setTimeLeft] = useState(question.timeoutSeconds || 15);
+    const [timeLeft, setTimeLeft] = useState(question.timeoutSeconds || 10);
 
     // Countdown timer
     useEffect(() => {
