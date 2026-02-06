@@ -29,7 +29,7 @@ async function waitForRateLimit() {
 export async function generateAgentResponse(agentType, context) {
     await waitForRateLimit();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const systemPrompts = {
         guidelines: `You are the GUIDELINES AGENT in a medical consultation team. You specialize in official medical guidelines from CDC, NIH, ACS, and AAFP.
@@ -138,7 +138,7 @@ Respond naturally as this agent. Remember: 2-3 sentences max, conversational ton
 export async function checkRedFlags(symptoms) {
     await waitForRateLimit();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const prompt = `Analyze these symptoms for emergency red flags that require immediate medical attention:
 
