@@ -12,6 +12,8 @@ function App() {
   const [emergency, setEmergency] = useState(null);
   const [speakingAgent, setSpeakingAgent] = useState(null);
   const [status, setStatus] = useState('');
+  const [agentQuestion, setAgentQuestion] = useState(null);
+  const [eventSourceRef, setEventSourceRef] = useState(null);
 
   const handleSubmit = useCallback(async (data) => {
     setPatientData(data);
@@ -22,62 +24,71 @@ function App() {
 
     // Start SSE connection
     const params = new URLSearchParams({
-      symptoms: data.symptoms,
-      painLevel: data.painLevel.toString(),
-      duration: data.duration
+      symptoms: data.symptoms
     });
 
     const eventSource = new EventSource(`/api/debate/stream?${params}`);
+    setEventSourceRef(eventSource);
 
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const eventData = JSON.parse(event.data);
 
-      switch (data.type) {
+      switch (eventData.type) {
         case 'connected':
           setStatus('Connected to consultation team...');
           break;
 
         case 'status':
-          setStatus(data.message);
+          setStatus(eventData.message);
           break;
 
         case 'emergency':
-          setEmergency(data);
+          setEmergency(eventData);
           eventSource.close();
           break;
 
         case 'agent_speaking':
-          setSpeakingAgent(data.agent);
-          setStatus(`${data.agent} is thinking...`);
+          setSpeakingAgent(eventData.agent);
+          setStatus(`${eventData.agent} is thinking...`);
           break;
 
         case 'agent_message':
           setSpeakingAgent(null);
           setMessages(prev => [...prev, {
             id: Date.now(),
-            agent: data.agent,
-            text: data.text,
-            sources: data.sources || [],
-            timestamp: data.timestamp
+            agent: eventData.agent,
+            text: eventData.text,
+            sources: eventData.sources || [],
+            timestamp: eventData.timestamp
           }]);
+          break;
+
+        case 'agent_question':
+          // Agent is asking the user a question
+          setAgentQuestion({
+            agent: eventData.agent,
+            text: eventData.question,
+            timeoutSeconds: eventData.timeoutSeconds || 15
+          });
+          setStatus(`${eventData.agent} is waiting for your response...`);
           break;
 
         case 'interjection':
           setMessages(prev => [...prev, {
             id: Date.now(),
             agent: 'Patient',
-            text: data.message,
+            text: eventData.message,
             isPatient: true,
-            timestamp: data.timestamp
+            timestamp: eventData.timestamp
           }]);
           break;
 
         case 'consensus':
           setConsensus({
-            text: data.text,
-            urgency: data.urgency,
-            sources: data.sources,
-            agentMessages: data.agentMessages
+            text: eventData.text,
+            urgency: eventData.urgency,
+            sources: eventData.sources,
+            agentMessages: eventData.agentMessages
           });
           setPhase('consensus');
           setStatus('Consultation complete');
@@ -89,7 +100,7 @@ function App() {
           break;
 
         case 'error':
-          setStatus(`Error: ${data.message}`);
+          setStatus(`Error: ${eventData.message}`);
           eventSource.close();
           break;
       }
@@ -123,6 +134,41 @@ function App() {
     }
   }, []);
 
+  const handleQuestionAnswer = useCallback(async (response) => {
+    setAgentQuestion(null);
+
+    if (!response.skipped && response.answer) {
+      // Add the answer as a patient message
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        agent: 'Patient',
+        text: response.answer,
+        isPatient: true,
+        timestamp: new Date().toISOString()
+      }]);
+
+      // Send to backend as an interjection
+      try {
+        await fetch('/api/debate/current/interject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: response.answer })
+        });
+      } catch (error) {
+        console.error('Answer submission failed:', error);
+      }
+    } else {
+      // Notify backend that question was skipped
+      try {
+        await fetch('/api/debate/current/skip-question', {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.error('Skip notification failed:', error);
+      }
+    }
+  }, []);
+
   const handleNewConsultation = useCallback(() => {
     setPhase('input');
     setPatientData(null);
@@ -131,6 +177,7 @@ function App() {
     setEmergency(null);
     setSpeakingAgent(null);
     setStatus('');
+    setAgentQuestion(null);
   }, []);
 
   if (emergency) {
@@ -166,6 +213,8 @@ function App() {
             status={status}
             onInterjection={handleInterjection}
             patientData={patientData}
+            agentQuestion={agentQuestion}
+            onQuestionAnswer={handleQuestionAnswer}
           />
         )}
 

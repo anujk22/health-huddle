@@ -80,7 +80,38 @@ app.get('/api/debate/stream', async (req, res) => {
     }
 });
 
-// Patient interjection endpoint
+// Patient interjection endpoint (simplified - uses most recent session)
+app.post('/api/debate/current/interject', async (req, res) => {
+    const { message } = req.body;
+
+    // Get the most recent active connection
+    const sessions = Array.from(activeConnections.keys());
+    if (sessions.length === 0) {
+        return res.status(404).json({ error: 'No active session' });
+    }
+
+    const sessionId = sessions[sessions.length - 1];
+    const connection = activeConnections.get(sessionId);
+
+    // Add interjection to the debate
+    addInterjection(sessionId, message);
+
+    // Send acknowledgment through SSE
+    connection.write(`data: ${JSON.stringify({
+        type: 'interjection',
+        message,
+        timestamp: new Date().toISOString()
+    })}\n\n`);
+
+    res.json({ success: true, message: 'Interjection received' });
+});
+
+// Skip question endpoint
+app.post('/api/debate/current/skip-question', (req, res) => {
+    res.json({ success: true, message: 'Question skipped' });
+});
+
+// Legacy endpoint (keep for compatibility)
 app.post('/api/debate/:sessionId/interject', async (req, res) => {
     const { sessionId } = req.params;
     const { message } = req.body;

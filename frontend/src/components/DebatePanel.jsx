@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import AgentAvatar from './AgentAvatar';
 import MessageBubble from './MessageBubble';
+import AgentQuestion from './AgentQuestion';
 import { appConfig } from '../config';
 
-function DebatePanel({ messages, speakingAgent, status, onInterjection, patientData }) {
+function DebatePanel({ messages, speakingAgent, status, onInterjection, patientData, agentQuestion, onQuestionAnswer }) {
     const [interjectionText, setInterjectionText] = useState('');
     const [showInterjectionHint, setShowInterjectionHint] = useState(true);
     const messagesEndRef = useRef(null);
@@ -62,13 +63,6 @@ function DebatePanel({ messages, speakingAgent, status, onInterjection, patientD
                         </div>
                         <div className="message-content">
                             {patientData.symptoms}
-                            {(patientData.painLevel || patientData.duration) && (
-                                <div style={{ marginTop: '8px', fontSize: '0.875rem', opacity: 0.7 }}>
-                                    {patientData.painLevel && `Pain: ${patientData.painLevel}/10`}
-                                    {patientData.painLevel && patientData.duration && ' | '}
-                                    {patientData.duration && `Duration: ${patientData.duration}`}
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}
@@ -94,7 +88,7 @@ function DebatePanel({ messages, speakingAgent, status, onInterjection, patientD
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Patient Interjection Input - More Prominent */}
+                {/* Patient Interjection Input */}
                 <div className="interjection-wrapper" style={{
                     background: 'rgba(0, 212, 170, 0.08)',
                     borderTop: '2px solid var(--accent-primary)',
@@ -140,6 +134,14 @@ function DebatePanel({ messages, speakingAgent, status, onInterjection, patientD
                     </p>
                 </div>
             </div>
+
+            {/* Agent Question Overlay */}
+            {agentQuestion && (
+                <AgentQuestion
+                    question={agentQuestion}
+                    onAnswer={onQuestionAnswer}
+                />
+            )}
         </div>
     );
 }
