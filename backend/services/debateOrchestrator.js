@@ -247,16 +247,37 @@ export async function runDebate(patientInput, onEvent, sessionId) {
 }
 
 function parseUrgency(consensusText) {
+    // Look specifically for the URGENCY: line in the response
+    const urgencyMatch = consensusText.match(/URGENCY:\s*(LOW|MEDIUM|HIGH|CRITICAL)/i);
+
+    if (urgencyMatch) {
+        const level = urgencyMatch[1].toUpperCase();
+        switch (level) {
+            case 'CRITICAL':
+                return { level: 'CRITICAL', color: '#ff4444', message: 'Go to ER immediately' };
+            case 'HIGH':
+                return { level: 'HIGH', color: '#ff9944', message: 'Urgent care today' };
+            case 'MEDIUM':
+                return { level: 'MEDIUM', color: '#ffcc00', message: 'See doctor within 24 hours' };
+            case 'LOW':
+            default:
+                return { level: 'LOW', color: '#44cc44', message: 'Monitor 24-48 hours' };
+        }
+    }
+
+    // Fallback: scan for keywords if URGENCY line wasn't found
     const text = consensusText.toUpperCase();
 
-    if (text.includes('CRITICAL') || text.includes('ER NOW') || text.includes('EMERGENCY')) {
-        return { level: 'CRITICAL', color: '#ff4444', message: 'ER immediately' };
+    if (text.includes('ER NOW') || text.includes('EMERGENCY ROOM') || text.includes('CALL 911')) {
+        return { level: 'CRITICAL', color: '#ff4444', message: 'Go to ER immediately' };
     }
-    if (text.includes('HIGH') || text.includes('URGENT CARE') || text.includes('TODAY')) {
+    if (text.includes('URGENT CARE TODAY') || text.includes('GO TO URGENT CARE')) {
         return { level: 'HIGH', color: '#ff9944', message: 'Urgent care today' };
     }
-    if (text.includes('MEDIUM') || text.includes('24 HOURS') || text.includes('WITHIN 24')) {
-        return { level: 'MEDIUM', color: '#ffcc00', message: 'Doctor within 24 hours' };
+    if (text.includes('WITHIN 24 HOURS') || text.includes('SEE A DOCTOR SOON')) {
+        return { level: 'MEDIUM', color: '#ffcc00', message: 'See doctor within 24 hours' };
     }
+
+    // Default to LOW for routine symptoms
     return { level: 'LOW', color: '#44cc44', message: 'Monitor 24-48 hours' };
 }

@@ -220,9 +220,10 @@ p {
 
 .app-header .action-button {
   flex-shrink: 0;
-  padding: var(--space-sm) var(--space-lg);
-  font-size: 0.875rem;
+  padding: 6px 14px;
+  font-size: 0.75rem;
   white-space: nowrap;
+  min-width: auto;
 }
 
 .app-logo {
