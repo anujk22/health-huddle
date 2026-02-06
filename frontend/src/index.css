@@ -210,11 +210,19 @@ p {
 
 /* Header */
 .app-header {
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-md) var(--space-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(0, 212, 170, 0.1);
+  gap: var(--space-lg);
+}
+
+.app-header .action-button {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .app-logo {

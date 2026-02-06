@@ -4,58 +4,102 @@ import UrgencyBadge from './UrgencyBadge';
 function ConsensusDashboard({ consensus, patientData, messages, onNewConsultation }) {
     const [copied, setCopied] = useState(false);
 
+    // Strip markdown formatting (asterisks, etc.)
+    const cleanText = (text) => {
+        return text
+            .replace(/\*\*/g, '')  // Remove bold asterisks
+            .replace(/\*/g, '')    // Remove italic asterisks
+            .replace(/`/g, '')     // Remove backticks
+            .replace(/^#+\s*/gm, '') // Remove heading markers
+            .trim();
+    };
+
     // Parse the consensus text to extract structured data
     const parseConsensus = (text) => {
-        const lines = text.split('\n').filter(line => line.trim());
-        let diagnosis = '';
-        let confidence = 62; // Default
+        const cleanedText = cleanText(text);
+        const lines = cleanedText.split('\n').filter(line => line.trim());
+
+        let diagnosisName = '';
+        let diagnosisReason = '';
+        let confidence = 65;
         let recommendations = [];
-        let alternatives = [];
+        let urgencyText = '';
+        let alternatives = '';
+        let warningSignsText = '';
 
-        // Simple parsing - look for patterns
-        for (const line of lines) {
-            const lowerLine = line.toLowerCase();
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            const upperLine = line.toUpperCase();
 
-            // Look for diagnosis
-            if (lowerLine.includes('primary diagnosis') || lowerLine.includes('diagnosis:')) {
-                diagnosis = line.replace(/.*diagnosis[:\s]*/i, '').trim();
-                // Try to extract percentage
-                const percentMatch = line.match(/(\d+)%/);
-                if (percentMatch) {
-                    confidence = parseInt(percentMatch[1]);
+            // PRIMARY ASSESSMENT parsing
+            if (upperLine.startsWith('PRIMARY ASSESSMENT:')) {
+                const assessmentPart = line.replace(/^PRIMARY ASSESSMENT:\s*/i, '');
+
+                // Extract condition and confidence
+                const confMatch = assessmentPart.match(/(.+?)\s*\((\d+)%\s*confidence\)/i);
+                if (confMatch) {
+                    diagnosisName = confMatch[1].trim();
+                    confidence = parseInt(confMatch[2]);
+                } else {
+                    diagnosisName = assessmentPart;
+                    const numMatch = assessmentPart.match(/(\d+)%/);
+                    if (numMatch) confidence = parseInt(numMatch[1]);
+                }
+
+                // Get the next line as the reason
+                if (i + 1 < lines.length && !lines[i + 1].toUpperCase().startsWith('URGENCY')) {
+                    diagnosisReason = lines[i + 1].trim();
                 }
             }
 
-            // Look for numbered recommendations
-            if (/^\d+[\.\)]/.test(line.trim())) {
+            // URGENCY parsing
+            if (upperLine.startsWith('URGENCY:')) {
+                urgencyText = line.replace(/^URGENCY:\s*/i, '').trim();
+            }
+
+            // WHAT YOU SHOULD DO parsing
+            if (/^\d+[\.\)]\s/.test(line)) {
                 recommendations.push(line.replace(/^\d+[\.\)]\s*/, '').trim());
             }
 
-            // Look for alternatives
-            if (lowerLine.includes('alternative') || lowerLine.includes('differential')) {
-                alternatives.push(line);
+            // OTHER POSSIBILITIES
+            if (upperLine.startsWith('OTHER POSSIBILITIES:')) {
+                alternatives = line.replace(/^OTHER POSSIBILITIES:\s*/i, '').trim();
+            }
+
+            // WHEN TO SEEK IMMEDIATE CARE
+            if (upperLine.startsWith('WHEN TO SEEK')) {
+                warningSignsText = line.replace(/^WHEN TO SEEK.*?:\s*/i, '').trim();
             }
         }
 
-        // If no structured diagnosis found, use first substantive line
-        if (!diagnosis) {
-            diagnosis = lines.find(l => l.length > 20 && !l.startsWith('#')) || 'Under evaluation';
+        // Fallback if no structured diagnosis found
+        if (!diagnosisName) {
+            diagnosisName = lines.find(l => l.length > 10 && !l.startsWith('#')) || 'Assessment pending';
         }
 
-        return { diagnosis, confidence, recommendations, alternatives };
+        return {
+            diagnosisName,
+            diagnosisReason,
+            confidence,
+            recommendations,
+            alternatives,
+            warningSignsText,
+            fullText: cleanedText
+        };
     };
 
     const parsed = parseConsensus(consensus.text);
 
-    const doctorSummary = `${patientData.symptoms}
+    const doctorSummary = `Patient Symptoms: ${patientData.symptoms}
 
-Pain level: ${patientData.painLevel}/10
-Duration: ${patientData.duration}
-
-AI Consultation Summary: ${parsed.diagnosis}
+AI Consultation Assessment: ${parsed.diagnosisName}
+Confidence: ${parsed.confidence}%
 Urgency: ${consensus.urgency?.message || 'Consult healthcare provider'}
 
-This summary was generated by HealthHuddle AI for informational purposes.`;
+${parsed.recommendations.length > 0 ? 'Recommended Actions:\n' + parsed.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n') : ''}
+
+Generated by HealthHuddle AI - for informational purposes only.`;
 
     const handleCopy = async () => {
         try {
@@ -68,7 +112,6 @@ This summary was generated by HealthHuddle AI for informational purposes.`;
     };
 
     const handleDownloadPDF = () => {
-        // Create a simple text-based report (in a real app, use jsPDF)
         const report = `
 HEALTHHUDDLE CONSULTATION REPORT
 ================================
@@ -77,27 +120,27 @@ Date: ${new Date().toLocaleDateString()}
 PATIENT SYMPTOMS:
 ${patientData.symptoms}
 
-Pain Level: ${patientData.painLevel}/10
-Duration: ${patientData.duration}
+PRIMARY ASSESSMENT:
+${parsed.diagnosisName}
+${parsed.diagnosisReason}
 
-TEAM CONSENSUS:
-${parsed.diagnosis}
 Confidence: ${parsed.confidence}%
 Urgency: ${consensus.urgency?.message || 'Consult healthcare provider'}
 
-RECOMMENDATIONS:
+RECOMMENDED ACTIONS:
 ${parsed.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 
-AGENT DISCUSSION:
-${messages.map(m => `[${m.agent}]: ${m.text}`).join('\n\n')}
+${parsed.alternatives ? `OTHER POSSIBILITIES: ${parsed.alternatives}` : ''}
 
-SOURCES CONSULTED:
-${consensus.sources?.map(s => `- ${s.title}`).join('\n') || 'See individual messages'}
+${parsed.warningSignsText ? `SEEK IMMEDIATE CARE IF: ${parsed.warningSignsText}` : ''}
+
+AGENT DISCUSSION:
+${messages.filter(m => !m.isPatient).map(m => `[${m.agent}]: ${m.text}`).join('\n\n')}
 
 ---
 DISCLAIMER: This report is generated by AI for informational purposes only.
 Always consult a qualified healthcare provider for medical decisions.
-    `.trim();
+        `.trim();
 
         const blob = new Blob([report], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -123,10 +166,22 @@ Always consult a qualified healthcare provider for medical decisions.
                     <UrgencyBadge urgency={consensus.urgency} />
                 </div>
 
-                {/* Primary Diagnosis */}
+                {/* Primary Diagnosis - Cleaner Format */}
                 <div className="diagnosis-box">
                     <div className="diagnosis-label">Primary Assessment</div>
-                    <div className="diagnosis-name">{parsed.diagnosis}</div>
+                    <div className="diagnosis-name" style={{ fontSize: '1.4rem', fontWeight: '600' }}>
+                        {parsed.diagnosisName}
+                    </div>
+                    {parsed.diagnosisReason && (
+                        <div className="diagnosis-reason" style={{
+                            marginTop: '8px',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.95rem',
+                            fontStyle: 'italic'
+                        }}>
+                            {parsed.diagnosisReason}
+                        </div>
+                    )}
                     <div className="diagnosis-confidence">
                         <div className="confidence-bar">
                             <div
@@ -138,20 +193,10 @@ Always consult a qualified healthcare provider for medical decisions.
                     </div>
                 </div>
 
-                {/* Full Consensus Text */}
-                <div className="recommendations">
-                    <h3>📋 Team Summary</h3>
-                    <div className="message-bubble consensus" style={{ animation: 'none', opacity: 1, transform: 'none' }}>
-                        <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>
-                            {consensus.text}
-                        </div>
-                    </div>
-                </div>
-
                 {/* Recommendations */}
                 {parsed.recommendations.length > 0 && (
                     <div className="recommendations">
-                        <h3>✅ Next Steps</h3>
+                        <h3>✅ What You Should Do</h3>
                         <ul className="recommendations-list">
                             {parsed.recommendations.slice(0, 5).map((rec, index) => (
                                 <li key={index} className="recommendation-item">
@@ -160,6 +205,36 @@ Always consult a qualified healthcare provider for medical decisions.
                                 </li>
                             ))}
                         </ul>
+                    </div>
+                )}
+
+                {/* Warning Signs */}
+                {parsed.warningSignsText && (
+                    <div className="warning-signs" style={{
+                        background: 'rgba(255, 82, 82, 0.1)',
+                        border: '1px solid rgba(255, 82, 82, 0.3)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: 'var(--space-md)',
+                        marginTop: 'var(--space-lg)'
+                    }}>
+                        <h4 style={{ color: 'var(--agent-safety)', margin: '0 0 8px 0' }}>
+                            ⚠️ Seek Immediate Care If:
+                        </h4>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                            {parsed.warningSignsText}
+                        </p>
+                    </div>
+                )}
+
+                {/* Alternatives */}
+                {parsed.alternatives && (
+                    <div className="alternatives" style={{ marginTop: 'var(--space-lg)' }}>
+                        <h4 style={{ color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+                            Other Possibilities to Discuss:
+                        </h4>
+                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                            {parsed.alternatives}
+                        </p>
                     </div>
                 )}
 
