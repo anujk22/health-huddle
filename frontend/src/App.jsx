@@ -74,13 +74,19 @@ function App() {
           break;
 
         case 'interjection':
-          setMessages(prev => [...prev, {
-            id: Date.now(),
-            agent: 'Patient',
-            text: eventData.message,
-            isPatient: true,
-            timestamp: eventData.timestamp
-          }]);
+        case 'patient_response':
+          // Check if this message is already in the list (prevent duplicates)
+          setMessages(prev => {
+            const isDuplicate = prev.some(m => m.isPatient && m.text === eventData.message);
+            if (isDuplicate) return prev;
+            return [...prev, {
+              id: Date.now(),
+              agent: 'Patient',
+              text: eventData.message,
+              isPatient: true,
+              timestamp: eventData.timestamp
+            }];
+          });
           break;
 
         case 'consensus':
@@ -138,15 +144,7 @@ function App() {
     setAgentQuestion(null);
 
     if (!response.skipped && response.answer) {
-      // Add the answer as a patient message
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        agent: 'Patient',
-        text: response.answer,
-        isPatient: true,
-        timestamp: new Date().toISOString()
-      }]);
-
+      // Don't add message here - backend will send it via patient_response event
       // Send to backend as an interjection
       try {
         await fetch('/api/debate/current/interject', {
