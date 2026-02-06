@@ -1,17 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import AgentAvatar from './AgentAvatar';
 import MessageBubble from './MessageBubble';
+import { appConfig } from '../config';
 
 function DebatePanel({ messages, speakingAgent, status, onInterjection, patientData }) {
     const [interjectionText, setInterjectionText] = useState('');
+    const [showInterjectionHint, setShowInterjectionHint] = useState(true);
     const messagesEndRef = useRef(null);
 
-    const agents = ['Guidelines', 'Evidence', 'Cases', 'Safety'];
+    const agents = Object.keys(appConfig.agents);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Show hint for first few seconds then hide
+    useEffect(() => {
+        const timer = setTimeout(() => setShowInterjectionHint(false), 8000);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleInterjectionSubmit = (e) => {
         e.preventDefault();
@@ -39,6 +47,7 @@ function DebatePanel({ messages, speakingAgent, status, onInterjection, patientD
                         <AgentAvatar
                             key={agent}
                             agent={agent}
+                            config={appConfig.agents[agent]}
                             isSpeaking={speakingAgent === agent}
                             isActive={activeAgents.has(agent)}
                         />
@@ -53,9 +62,13 @@ function DebatePanel({ messages, speakingAgent, status, onInterjection, patientD
                         </div>
                         <div className="message-content">
                             {patientData.symptoms}
-                            <div style={{ marginTop: '8px', fontSize: '0.875rem', opacity: 0.7 }}>
-                                Pain: {patientData.painLevel}/10 | Duration: {patientData.duration}
-                            </div>
+                            {(patientData.painLevel || patientData.duration) && (
+                                <div style={{ marginTop: '8px', fontSize: '0.875rem', opacity: 0.7 }}>
+                                    {patientData.painLevel && `Pain: ${patientData.painLevel}/10`}
+                                    {patientData.painLevel && patientData.duration && ' | '}
+                                    {patientData.duration && `Duration: ${patientData.duration}`}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -81,19 +94,51 @@ function DebatePanel({ messages, speakingAgent, status, onInterjection, patientD
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Patient Interjection Input */}
-                <form className="interjection-form" onSubmit={handleInterjectionSubmit}>
-                    <input
-                        type="text"
-                        className="interjection-input"
-                        value={interjectionText}
-                        onChange={(e) => setInterjectionText(e.target.value)}
-                        placeholder="Add more info anytime... (e.g., 'I'm also running a fever now')"
-                    />
-                    <button type="submit" className="interjection-button">
-                        Add Info
-                    </button>
-                </form>
+                {/* Patient Interjection Input - More Prominent */}
+                <div className="interjection-wrapper" style={{
+                    background: 'rgba(0, 212, 170, 0.08)',
+                    borderTop: '2px solid var(--accent-primary)',
+                    padding: '16px'
+                }}>
+                    {showInterjectionHint && (
+                        <div style={{
+                            background: 'rgba(0, 212, 170, 0.15)',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            marginBottom: '12px',
+                            fontSize: '0.85rem',
+                            color: 'var(--accent-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            💡 <strong>Tip:</strong> You can add information at any time during the consultation!
+                        </div>
+                    )}
+
+                    <form className="interjection-form" onSubmit={handleInterjectionSubmit} style={{ margin: 0 }}>
+                        <input
+                            type="text"
+                            className="interjection-input"
+                            value={interjectionText}
+                            onChange={(e) => setInterjectionText(e.target.value)}
+                            placeholder="Add more details, correct something, or tell them about new symptoms..."
+                            style={{ flex: 1 }}
+                        />
+                        <button type="submit" className="interjection-button">
+                            ➤ Add
+                        </button>
+                    </form>
+
+                    <p style={{
+                        margin: '8px 0 0',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        textAlign: 'center'
+                    }}>
+                        Examples: "I forgot to mention I have a fever" • "The pain just got worse" • "I'm female, 28 years old"
+                    </p>
+                </div>
             </div>
         </div>
     );

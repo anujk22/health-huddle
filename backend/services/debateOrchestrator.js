@@ -1,5 +1,6 @@
 import { generateAgentResponse, checkRedFlags } from './geminiService.js';
 import { getMedicalSources } from '../data/sources.js';
+import { agentConfig } from '../config.js';
 
 // Store interjections by session
 const sessionInterjections = new Map();
@@ -25,12 +26,20 @@ function getUnprocessedInterjection(sessionId) {
     return null;
 }
 
+// Helper to add reading pause
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function runDebate(patientInput, onEvent) {
     const { symptoms, painLevel, duration } = patientInput;
     const sessionId = `session_${Date.now()}`;
 
     // Initialize sources
     const sources = getMedicalSources(symptoms);
+
+    // Get timing config
+    const { readingPauseMs, beforeConsensusPauseMs } = agentConfig.timing;
 
     // Send initial status
     onEvent({
@@ -54,27 +63,24 @@ export async function runDebate(patientInput, onEvent) {
 
     onEvent({
         type: 'status',
-        message: 'Starting team consultation...',
+        message: 'Starting team consultation... (You can add information anytime below)',
         phase: 'debate'
     });
 
     const messages = [];
     const agentOrder = ['guidelines', 'evidence', 'cases', 'safety'];
-    const agentNames = {
-        guidelines: 'Guidelines',
-        evidence: 'Evidence',
-        cases: 'Cases',
-        safety: 'Safety'
-    };
 
     // Run through each agent
-    for (const agent of agentOrder) {
+    for (let i = 0; i < agentOrder.length; i++) {
+        const agent = agentOrder[i];
+        const agentInfo = agentConfig.agents[agent];
+
         // Check for patient interjection before each agent speaks
         const interjection = getUnprocessedInterjection(sessionId);
 
         onEvent({
             type: 'agent_speaking',
-            agent: agentNames[agent],
+            agent: agentInfo.name,
             status: 'thinking'
         });
 
@@ -83,7 +89,10 @@ export async function runDebate(patientInput, onEvent) {
             painLevel,
             duration,
             previousMessages: messages.map(m => `${m.agent}: ${m.text}`).join('\n\n'),
-            interjection
+            interjection,
+            agentNames: Object.fromEntries(
+                Object.entries(agentConfig.agents).map(([k, v]) => [k, v.name])
+            )
         };
 
         try {
@@ -93,7 +102,8 @@ export async function runDebate(patientInput, onEvent) {
             const agentSources = sources[agent] || [];
 
             const message = {
-                agent: agentNames[agent],
+                agent: agentInfo.name,
+                agentKey: agent,
                 text: response,
                 sources: agentSources,
                 timestamp: new Date().toISOString()
@@ -106,15 +116,36 @@ export async function runDebate(patientInput, onEvent) {
                 ...message
             });
 
+            // Add reading pause after each message (except the last one before consensus)
+            if (i < agentOrder.length - 1) {
+                onEvent({
+                    type: 'status',
+                    message: `Take your time to read... ${agentConfig.agents[agentOrder[i + 1]].name} is preparing their thoughts`,
+                    phase: 'reading_pause'
+                });
+                await sleep(readingPauseMs);
+            }
+
         } catch (error) {
             console.error(`Error from ${agent}:`, error);
             onEvent({
                 type: 'agent_error',
-                agent: agentNames[agent],
+                agent: agentInfo.name,
                 error: 'Had trouble responding, but the team continues...'
             });
         }
     }
+
+    // Pause before consensus to allow final interjections
+    onEvent({
+        type: 'status',
+        message: 'All agents have spoken. Add any final details now before we summarize...',
+        phase: 'pre_consensus'
+    });
+    await sleep(beforeConsensusPauseMs);
+
+    // Check for any last-minute interjections
+    const finalInterjection = getUnprocessedInterjection(sessionId);
 
     // Generate consensus
     onEvent({
@@ -128,7 +159,11 @@ export async function runDebate(patientInput, onEvent) {
             symptoms,
             painLevel,
             duration,
-            previousMessages: messages.map(m => `${m.agent}: ${m.text}`).join('\n\n')
+            previousMessages: messages.map(m => `${m.agent}: ${m.text}`).join('\n\n'),
+            interjection: finalInterjection,
+            agentNames: Object.fromEntries(
+                Object.entries(agentConfig.agents).map(([k, v]) => [k, v.name])
+            )
         };
 
         const consensusResponse = await generateAgentResponse('consensus', consensusContext);

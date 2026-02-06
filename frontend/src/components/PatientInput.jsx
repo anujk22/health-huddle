@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { appConfig } from '../config';
 
 function PatientInput({ onSubmit }) {
     const [symptoms, setSymptoms] = useState('');
     const [painLevel, setPainLevel] = useState(5);
     const [duration, setDuration] = useState('a few hours');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -43,7 +45,7 @@ function PatientInput({ onSubmit }) {
     return (
         <section className="input-section">
             <div className="input-welcome">
-                <h2>Welcome to HealthHuddle</h2>
+                <h2>Welcome to {appConfig.ui.appName}</h2>
                 <p>Describe your symptoms and our team of AI medical specialists will discuss your case and provide recommendations.</p>
             </div>
 
@@ -58,38 +60,65 @@ Example: Sharp pain in my right lower abdomen for about 12 hours. It hurts more 
                     required
                 />
 
-                <div className="input-controls">
-                    <div className="control-group">
-                        <label className="control-label">Pain Level</label>
-                        <div className="control-value">{painLevel}/10 - {getPainLabel(painLevel)}</div>
-                        <input
-                            type="range"
-                            min="1"
-                            max="10"
-                            value={painLevel}
-                            onChange={(e) => setPainLevel(parseInt(e.target.value))}
-                            className="pain-slider"
-                        />
-                    </div>
+                {/* Optional Advanced Options */}
+                <button
+                    type="button"
+                    className="advanced-toggle"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-tertiary)',
+                        cursor: 'pointer',
+                        padding: '8px 0',
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginTop: '8px'
+                    }}
+                >
+                    {showAdvanced ? '▼' : '▶'} Additional details (optional)
+                </button>
 
-                    <div className="control-group">
-                        <label className="control-label">How long has this been going on?</label>
-                        <select
-                            value={duration}
-                            onChange={(e) => setDuration(e.target.value)}
-                            className="duration-select"
-                        >
-                            <option value="less than an hour">Less than an hour</option>
-                            <option value="a few hours">A few hours</option>
-                            <option value="about a day">About a day</option>
-                            <option value="2-3 days">2-3 days</option>
-                            <option value="about a week">About a week</option>
-                            <option value="more than a week">More than a week</option>
-                            <option value="several weeks">Several weeks</option>
-                            <option value="months">Months</option>
-                        </select>
+                {showAdvanced && (
+                    <div className="input-controls">
+                        {appConfig.ui.showPainSlider && (
+                            <div className="control-group">
+                                <label className="control-label">Pain Level (optional)</label>
+                                <div className="control-value">{painLevel}/10 - {getPainLabel(painLevel)}</div>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="10"
+                                    value={painLevel}
+                                    onChange={(e) => setPainLevel(parseInt(e.target.value))}
+                                    className="pain-slider"
+                                />
+                            </div>
+                        )}
+
+                        {appConfig.ui.showDurationSelector && (
+                            <div className="control-group">
+                                <label className="control-label">How long has this been going on?</label>
+                                <select
+                                    value={duration}
+                                    onChange={(e) => setDuration(e.target.value)}
+                                    className="duration-select"
+                                >
+                                    <option value="less than an hour">Less than an hour</option>
+                                    <option value="a few hours">A few hours</option>
+                                    <option value="about a day">About a day</option>
+                                    <option value="2-3 days">2-3 days</option>
+                                    <option value="about a week">About a week</option>
+                                    <option value="more than a week">More than a week</option>
+                                    <option value="several weeks">Several weeks</option>
+                                    <option value="months">Months</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
-                </div>
+                )}
 
                 <button
                     type="submit"

@@ -1,17 +1,17 @@
-function AgentAvatar({ agent, isSpeaking, isActive }) {
-    const agentConfig = {
-        Guidelines: { icon: '📋', className: 'agent-guidelines' },
-        Evidence: { icon: '📊', className: 'agent-evidence' },
-        Cases: { icon: '🗂️', className: 'agent-cases' },
-        Safety: { icon: '⚠️', className: 'agent-safety' },
-        Consensus: { icon: '🎯', className: 'agent-consensus' }
+function AgentAvatar({ agent, config, isSpeaking, isActive }) {
+    const agentStyles = {
+        Guidelines: 'agent-guidelines',
+        Evidence: 'agent-evidence',
+        Cases: 'agent-cases',
+        Safety: 'agent-safety',
+        Consensus: 'agent-consensus'
     };
 
-    const config = agentConfig[agent] || { icon: '🤖', className: '' };
+    const className = agentStyles[agent] || '';
 
     const classes = [
         'agent-avatar',
-        config.className,
+        className,
         isSpeaking ? 'speaking' : '',
         isActive ? 'active' : ''
     ].filter(Boolean).join(' ');
@@ -19,9 +19,9 @@ function AgentAvatar({ agent, isSpeaking, isActive }) {
     return (
         <div className={classes}>
             <div className="avatar-circle">
-                {config.icon}
+                {config?.icon || '🤖'}
             </div>
-            <span className="avatar-name">{agent}</span>
+            <span className="avatar-name">{config?.name || agent}</span>
         </div>
     );
 }
