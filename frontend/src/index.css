@@ -219,11 +219,11 @@ p {
 }
 
 .app-header .action-button {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: auto;
   padding: 6px 14px;
   font-size: 0.75rem;
   white-space: nowrap;
-  min-width: auto;
 }
 
 .app-logo {
