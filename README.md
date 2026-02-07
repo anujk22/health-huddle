@@ -1,4 +1,5 @@
-# 🩺 HealthHuddle
+# HealthHuddle
+<img width="1685" height="1034" alt="main" src="https://github.com/user-attachments/assets/e6a27ace-511b-4ed2-899e-9f180a44017c" />
 
 **Your personal AI medical consultation team.**
 
