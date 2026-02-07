@@ -162,68 +162,71 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
               />
             </div>
 
-            {/* Location */}
-            <div>
-              <label className="block text-white/90 mb-2 font-medium">
-                Where exactly is the problem? <span className="text-white/40 text-sm">(if applicable)</span>
-              </label>
-              <input
-                type="text"
-                className={inputClasses('location')}
-                placeholder="e.g., Right lower abdomen, behind my left eye, both knees..."
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                onFocus={() => setFocusedField('location')}
-                onBlur={() => setFocusedField(null)}
-              />
-            </div>
+            {/* 2x2 Grid for intermediate fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Location */}
+              <div>
+                <label className="block text-white/90 mb-2 font-medium">
+                  Where exactly is the problem? <span className="text-white/40 text-sm">(if applicable)</span>
+                </label>
+                <input
+                  type="text"
+                  className={inputClasses('location')}
+                  placeholder="e.g., Right lower abdomen, behind my left eye, both knees..."
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  onFocus={() => setFocusedField('location')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </div>
 
-            {/* Duration */}
-            <div>
-              <label className="block text-white/90 mb-2 font-medium">
-                How long have you had this?
-              </label>
-              <input
-                type="text"
-                className={inputClasses('duration')}
-                placeholder="e.g., Started 2 hours ago, about 3 days, on and off for a week..."
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                onFocus={() => setFocusedField('duration')}
-                onBlur={() => setFocusedField(null)}
-              />
-            </div>
+              {/* Duration */}
+              <div>
+                <label className="block text-white/90 mb-2 font-medium">
+                  How long have you had this?
+                </label>
+                <input
+                  type="text"
+                  className={inputClasses('duration')}
+                  placeholder="e.g., Started 2 hours ago, about 3 days, on and off for a week..."
+                  value={formData.duration}
+                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                  onFocus={() => setFocusedField('duration')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </div>
 
-            {/* Severity */}
-            <div>
-              <label className="block text-white/90 mb-2 font-medium">
-                How would you describe the severity?
-              </label>
-              <input
-                type="text"
-                className={inputClasses('severity')}
-                placeholder="e.g., Mild but annoying, worst pain I've ever had, comes in waves..."
-                value={formData.severity}
-                onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                onFocus={() => setFocusedField('severity')}
-                onBlur={() => setFocusedField(null)}
-              />
-            </div>
+              {/* Severity */}
+              <div>
+                <label className="block text-white/90 mb-2 font-medium">
+                  How would you describe the severity?
+                </label>
+                <input
+                  type="text"
+                  className={inputClasses('severity')}
+                  placeholder="e.g., Mild but annoying, worst pain I've ever had, comes in waves..."
+                  value={formData.severity}
+                  onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                  onFocus={() => setFocusedField('severity')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </div>
 
-            {/* Triggers */}
-            <div>
-              <label className="block text-white/90 mb-2 font-medium">
-                What makes it better or worse?
-              </label>
-              <input
-                type="text"
-                className={inputClasses('triggers')}
-                placeholder="e.g., Worse when I move, better after eating, nothing helps..."
-                value={formData.triggers}
-                onChange={(e) => setFormData({ ...formData, triggers: e.target.value })}
-                onFocus={() => setFocusedField('triggers')}
-                onBlur={() => setFocusedField(null)}
-              />
+              {/* Triggers */}
+              <div>
+                <label className="block text-white/90 mb-2 font-medium">
+                  What makes it better or worse?
+                </label>
+                <input
+                  type="text"
+                  className={inputClasses('triggers')}
+                  placeholder="e.g., Worse when I move, better after eating, nothing helps..."
+                  value={formData.triggers}
+                  onChange={(e) => setFormData({ ...formData, triggers: e.target.value })}
+                  onFocus={() => setFocusedField('triggers')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </div>
             </div>
 
             {/* Other details */}

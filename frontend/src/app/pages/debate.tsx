@@ -86,7 +86,7 @@ export function DebatePage() {
       <AuroraOverlay />
       <Header />
 
-      <div className="relative z-10 flex-1 flex flex-col pt-20 max-w-5xl mx-auto w-full">
+      <div className="relative z-10 flex-1 flex flex-col pt-32 max-w-5xl mx-auto w-full">
         {/* Agent orbs */}
         <div className="px-6 mb-4 flex-shrink-0">
           <div className="flex justify-center gap-4 md:gap-8 bg-zinc-950/50 backdrop-blur-md p-4 rounded-2xl border border-white/5 mx-auto w-fit">
