@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Bot, Zap } from 'lucide-react';
+import { Sparkles, Zap } from 'lucide-react';
 
 interface IntakeFormProps {
   onSubmit: (data: {
@@ -42,8 +42,8 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
     transition-all duration-300
     placeholder:text-gray-600
     focus:outline-none focus:ring-2 
-    ${focusedField === fieldName 
-      ? 'border-cyan-400 ring-cyan-500/30 shadow-lg shadow-cyan-500/20' 
+    ${focusedField === fieldName
+      ? 'border-cyan-400 ring-cyan-500/30 shadow-lg shadow-cyan-500/20'
       : 'border-white/10 hover:border-white/20'
     }
   `;
@@ -53,14 +53,14 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
     transition-all duration-300 resize-none
     placeholder:text-gray-600
     focus:outline-none focus:ring-2 
-    ${focusedField === fieldName 
-      ? 'border-cyan-400 ring-cyan-500/30 shadow-lg shadow-cyan-500/20' 
+    ${focusedField === fieldName
+      ? 'border-cyan-400 ring-cyan-500/30 shadow-lg shadow-cyan-500/20'
       : 'border-white/10 hover:border-white/20'
     }
   `;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-20">
+    <div className="min-h-screen flex items-center justify-center px-6 pt-28 pb-12">
       <motion.div
         className="w-full max-w-3xl"
         initial={{ opacity: 0, y: 30 }}
@@ -69,15 +69,6 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
       >
         {/* Header */}
         <div className="text-center mb-12">
-          <motion.div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 mb-6"
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ duration: 0.8, type: 'spring' }}
-          >
-            <Bot className="w-10 h-10 text-cyan-400" />
-          </motion.div>
-
           <motion.h1
             className="text-4xl md:text-5xl lg:text-6xl mb-4 bg-gradient-to-r from-cyan-300 via-white to-purple-300 bg-clip-text text-transparent"
             initial={{ opacity: 0, y: 20 }}
@@ -102,9 +93,9 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
               <motion.div
                 key={i}
                 className="absolute w-1 h-1 bg-cyan-400/40 rounded-full"
-                initial={{ 
-                  x: Math.random() * 100 + '%', 
-                  y: Math.random() * 100 + '%' 
+                initial={{
+                  x: Math.random() * 100 + '%',
+                  y: Math.random() * 100 + '%'
                 }}
                 animate={{
                   y: [null, Math.random() * -200 - 100],
@@ -264,9 +255,9 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
                   repeatDelay: 1,
                 }}
               />
-              
+
               <span className="relative flex items-center justify-center gap-3">
-                <Bot className="w-6 h-6" />
+                <Sparkles className="w-5 h-5" />
                 Start AI Consultation
                 <Sparkles className="w-5 h-5" />
               </span>
@@ -276,7 +267,7 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
             <div className="flex flex-wrap justify-center gap-4 pt-4 text-xs text-white/50">
               <div className="flex items-center gap-2">
                 <Zap className="w-3 h-3 text-cyan-400" />
-                <span>Results in minutes</span>
+                <span>Results in seconds</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-400" />

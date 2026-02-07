@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "motion/react";
-import { ArrowRight, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -113,9 +113,7 @@ export function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
-              Watch a transparent, live conversation between
-              medical AI agents that explain what might be
-              happening and what to do next.
+              Watch a transparent conversation unfold, delivering a clear assessment, actionable next steps, and a summary for your doctor—all backed by medically vetted sources.
             </motion.p>
 
             <motion.div
@@ -150,24 +148,23 @@ export function HeroSection() {
               </motion.button>
             </motion.div>
 
-            {/* Trust badges */}
             <motion.div
-              className="mt-12 flex flex-wrap justify-center items-center gap-8 text-sm text-white/40"
+              className="mt-12 flex flex-wrap justify-center items-center gap-8 text-sm text-cyan-100/60"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.8 }}
             >
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
                 <span>Free to use</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                <span>No signup needed</span>
+                <Zap className="w-5 h-5 text-yellow-400" />
+                <span>Results in seconds</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-fuchsia-400" />
-                <span>Results in minutes</span>
+                <ShieldCheck className="w-5 h-5 text-cyan-400" />
+                <span>No signup needed</span>
               </div>
             </motion.div>
           </div>

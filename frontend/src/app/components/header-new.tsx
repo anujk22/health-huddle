@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'motion/react';
-import { Activity, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 
 export function Header() {
@@ -20,18 +20,21 @@ export function Header() {
           {/* Logo */}
           <motion.div
             className="flex items-center gap-3 group cursor-pointer"
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.02 }}
             onClick={() => navigate('/')}
           >
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-magenta-500 rounded-lg flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-magenta-500 rounded-lg blur-lg opacity-50 group-hover:opacity-100 transition-opacity" />
+              <img
+                src="/images/healthHuddleTransparent.png"
+                alt="HealthHuddle"
+                className="h-12 w-auto object-contain"
+              />
+              {/* Subtle glow effect on hover */}
+              <div className="absolute inset-0 bg-cyan-500/20 blur-xl opacity-0 group-hover:opacity-60 transition-opacity rounded-full" />
             </div>
-            <div>
-              <div className="text-lg text-white tracking-tight">HealthHuddle</div>
-              <div className="text-xs text-white/40 -mt-1">AI Medical Debate</div>
+            <div className="flex flex-col justify-center">
+              <div className="text-lg font-medium text-white tracking-normal leading-none mb-0.5">HealthHuddle</div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-widest leading-none">AI Medical Debate</div>
             </div>
           </motion.div>
 
