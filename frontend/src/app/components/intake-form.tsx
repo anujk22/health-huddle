@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Zap } from 'lucide-react';
+import { Sparkles, Zap, CheckCircle2, BookOpen } from 'lucide-react';
+import GradientText from './gradient-text';
 
 interface IntakeFormProps {
   onSubmit: (data: {
@@ -70,16 +71,23 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
         {/* Header */}
         <div className="text-center mb-12">
           <motion.h1
-            className="text-4xl md:text-5xl lg:text-6xl mb-4 bg-gradient-to-r from-cyan-300 via-white to-purple-300 bg-clip-text text-transparent"
+            className="flex flex-wrap items-center justify-center gap-2 md:gap-3 text-4xl md:text-5xl lg:text-6xl mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            Welcome to HealthHuddle
+            <GradientText
+              colors={["#00D4FF", "#00E5A0", "#00D4FF"]}
+              animationSpeed={6}
+              showBorder={false}
+              className="text-4xl md:text-5xl lg:text-6xl"
+            >
+              Welcome to HealthHuddle
+            </GradientText>
           </motion.h1>
 
           <motion.p
-            className="text-lg md:text-xl text-cyan-100/80 max-w-2xl mx-auto"
+            className="text-lg md:text-xl text-white max-w-2xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
@@ -264,18 +272,18 @@ export function IntakeForm({ onSubmit }: IntakeFormProps) {
             </motion.button>
 
             {/* Info badges */}
-            <div className="flex flex-wrap justify-center gap-4 pt-4 text-xs text-white/50">
+            <div className="flex flex-wrap justify-center items-center gap-6 pt-4 text-sm text-cyan-100/60">
               <div className="flex items-center gap-2">
-                <Zap className="w-3 h-3 text-cyan-400" />
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                <span>Free to use</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-yellow-400" />
                 <span>Results in seconds</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400" />
-                <span>Completely free</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-purple-400" />
-                <span>No account needed</span>
+                <BookOpen className="w-5 h-5 text-cyan-400" />
+                <span>Backed by sources</span>
               </div>
             </div>
           </div>

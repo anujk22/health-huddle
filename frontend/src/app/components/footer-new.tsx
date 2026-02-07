@@ -26,7 +26,7 @@ export function Footer() {
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-sm font-medium text-white">
-                  © 2026 HealthHuddle, not for emergency use.
+                  © 2026 HealthHuddle - Not For Emergency Use
                 </div>
                 <div className="text-xs text-white">
                   Created for UHACCS 2026 by Anuj and Safwan

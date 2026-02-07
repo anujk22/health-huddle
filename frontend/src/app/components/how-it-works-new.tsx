@@ -67,8 +67,7 @@ export function HowItWorks() {
         {/* Steps */}
         <div className="max-w-6xl mx-auto">
           <div className="relative">
-            {/* Connecting line */}
-            <div className="absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-pink-500/30 to-transparent hidden lg:block" />
+
 
             <div className="grid lg:grid-cols-3 gap-12 lg:gap-8">
               <Step
@@ -119,7 +118,7 @@ function Step({
   delay: number;
 }) {
   const colors = {
-    white: 'from-white/10 to-transparent border-white/40 text-white shadow-[0_0_30px_rgba(255,255,255,0.3)]',
+    white: 'from-white/10 to-transparent border-white/40 text-white hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-shadow duration-300',
     yellow: 'from-yellow-400/20 to-transparent border-yellow-400/40 text-yellow-400',
     pink: 'from-pink-500/20 to-transparent border-pink-500/40 text-pink-400',
   };

@@ -13,6 +13,7 @@ import {
   Heart,
 } from "lucide-react";
 import { useLocation } from "react-router";
+import GradientText from "../components/gradient-text";
 
 export function SafetyPage() {
   const location = useLocation();
@@ -74,9 +75,16 @@ export function SafetyPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h1 className="text-6xl md:text-7xl lg:text-8xl mb-6 bg-gradient-to-r from-white via-cyan-200 to-white bg-clip-text text-transparent leading-tight pb-2">
-              Safety & Guidelines
-            </h1>
+            <div className="flex justify-center">
+              <GradientText
+                colors={["#FF80AB", "#FF1744", "#FF80AB"]}
+                animationSpeed={6}
+                showBorder={false}
+                className="text-6xl md:text-7xl lg:text-8xl mb-6 pb-2"
+              >
+                Safety & Guidelines
+              </GradientText>
+            </div>
           </motion.div>
 
           {/* Main safety warning */}

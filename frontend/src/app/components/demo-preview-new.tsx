@@ -1,10 +1,12 @@
 'use client';
 import { motion } from 'motion/react';
-import { Play, Sparkles } from 'lucide-react';
+import { Play, Sparkles, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { AgentOrb } from './agent-orb';
 import GradientText from './gradient-text';
 
 export function DemoPreview() {
+  const navigate = useNavigate();
   return (
     <section className="relative py-32 overflow-hidden">
       {/* Clean black background - no tint */}
@@ -103,6 +105,40 @@ export function DemoPreview() {
 
           {/* Outer glow */}
           <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-green-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10 rounded-3xl" />
+        </motion.div>
+
+        {/* Start Debate Button */}
+        <motion.div
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          <motion.button
+            onClick={() => navigate("/intake")}
+            className="group relative px-8 py-4 bg-cyan-400 text-black rounded-lg overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {/* Animated shine effect */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-12"
+              animate={{
+                x: ["-200%", "200%"],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear",
+                repeatDelay: 1,
+              }}
+            />
+            <span className="relative flex items-center gap-2 font-medium">
+              Start Debate
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </span>
+          </motion.button>
         </motion.div>
       </div>
     </section>
