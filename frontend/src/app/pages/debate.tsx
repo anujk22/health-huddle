@@ -28,7 +28,8 @@ export function DebatePage() {
   const patientData = (location.state as any)?.patientData;
 
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [currentSpeaker, setCurrentSpeaker] = useState<AgentType | null>(null);
+  const [currentSpeaker, setCurrentSpeaker] = useState<AgentType | null>(null); // Agent currently thinking
+  const [lastSpeaker, setLastSpeaker] = useState<AgentType | null>(null); // Last agent who sent a message
   const [statusMessage, setStatusMessage] = useState<string>('Connecting to AI team...');
   const [isDebating, setIsDebating] = useState(true);
   const [consensus, setConsensus] = useState<ConsensusResult | null>(null);
@@ -156,7 +157,9 @@ export function DebatePage() {
           content: event.text,
           sources: event.sources || [],
         }]);
-        setCurrentSpeaker(null);
+        // Set this agent as the last speaker (for pulsating effect)
+        setLastSpeaker(event.agentKey);
+        setCurrentSpeaker(null); // No longer thinking
         break;
 
       case 'agent_question':
@@ -289,10 +292,10 @@ export function DebatePage() {
         {/* Agent orbs */}
         <div className="px-6 mb-8 mt-6">
           <div className="flex justify-center gap-8 max-w-2xl mx-auto">
-            <AgentOrb type="guidelines" isSpeaking={currentSpeaker === 'guidelines'} />
-            <AgentOrb type="evidence" isSpeaking={currentSpeaker === 'evidence'} />
-            <AgentOrb type="cases" isSpeaking={currentSpeaker === 'cases'} />
-            <AgentOrb type="safety" isSpeaking={currentSpeaker === 'safety'} />
+            <AgentOrb type="guidelines" isSpeaking={currentSpeaker === 'guidelines' || lastSpeaker === 'guidelines'} isThinking={currentSpeaker === 'guidelines'} />
+            <AgentOrb type="evidence" isSpeaking={currentSpeaker === 'evidence' || lastSpeaker === 'evidence'} isThinking={currentSpeaker === 'evidence'} />
+            <AgentOrb type="cases" isSpeaking={currentSpeaker === 'cases' || lastSpeaker === 'cases'} isThinking={currentSpeaker === 'cases'} />
+            <AgentOrb type="safety" isSpeaking={currentSpeaker === 'safety' || lastSpeaker === 'safety'} isThinking={currentSpeaker === 'safety'} />
           </div>
         </div>
 
