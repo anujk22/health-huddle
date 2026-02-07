@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { ArrowRight, CheckCircle2, ShieldCheck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import GradientText from './gradient-text';
 
 export function HeroSection() {
   const navigate = useNavigate();
@@ -94,17 +95,21 @@ export function HeroSection() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <span className="bg-gradient-to-r from-cyan-300 via-white to-cyan-300 bg-clip-text text-transparent">
+              <GradientText
+                colors={["#00D4FF", "#00E5A0", "#00D4FF"]}
+                animationSpeed={6}
+                className="text-5xl md:text-7xl lg:text-8xl"
+              >
                 {typedText}
                 <motion.span
-                  className="inline-block w-1 h-16 md:h-20 lg:h-24 bg-cyan-400 ml-2 align-middle"
+                  className="inline-block w-1 h-12 md:h-16 lg:h-20 bg-cyan-400 ml-1 align-middle"
                   animate={{ opacity: [1, 0] }}
                   transition={{
                     duration: 0.8,
                     repeat: Infinity,
                   }}
                 />
-              </span>
+              </GradientText>
             </motion.h1>
 
             <motion.p
