@@ -1,59 +1,39 @@
-# HealthHuddle
+# 🩺 HealthHuddle
 
-Medical AI consultation platform with 4 debating agents.
+**Your personal AI medical consultation team.**
 
-## Prerequisites
+HealthHuddle brings together four specialized AI agents to debate your symptoms in real-time, giving you a comprehensive, transparent, and multi-perspective health assessment.
 
-- Node.js (v18+ recommended)
-- npm (comes with Node.js)
+✨ **The Team:**
+- 📘 **Guidelines**: Sticks to standard medical protocols.
+- 🔬 **Evidence**: Cites the latest research and studies.
+- 🌿 **Cases**: Draws from similar patient stories and holistic care.
+- 🛡️ **Safety**: Always watching out for red flags and emergencies.
 
-## Installation
+---
 
-Install dependencies for both the backend (root) and frontend:
+## 🚀 Quick Start
 
-```bash
-# Install root/backend dependencies and frontend dependencies in one go
-npm run install:all
-```
+1.  **Install Dependencies**
+    ```bash
+    npm run install:all
+    ```
 
-Or manually:
+2.  **Start the Engine**
+    ```bash
+    npm run dev
+    ```
+    *(Runs both the AI backend & React frontend!)*
 
-```bash
-# Root/Backend
-npm install
+3.  **Visit**
+    Open `http://localhost:5173` to start your consultation.
 
-# Frontend
-cd frontend
-npm install
-cd ..
-```
+---
 
-## Running the Application
+## 🛠️ Tech Stack
+- **Frontend**: React, Vite, Tailwind CSS, Framer Motion
+- **Backend**: Node.js, Express
+- **AI**: Gemini 1.5 Flash
+- **Vibe**: Cyberpunk / Space Medical Interface 🌌
 
-### Option 1: Run Both (Recommended)
-
-Run both the backend server and frontend client with a single command:
-
-```bash
-npm run dev
-```
-
-This will run:
-- Backend on: `http://localhost:5000` (or configured port)
-- Frontend on: `http://localhost:5173` (Vite default)
-
-### Option 2: Run Separately
-
-**Terminal 1 (Backend):**
-```bash
-npm run server
-```
-
-**Terminal 2 (Frontend):**
-```bash
-npm run client
-```
-
-## Environment Variables
-
-Make sure you have a `.env` file in the root directory with the necessary configurations (e.g., API keys, Port).
+> *Note: This is an AI demonstration tool, not a replacement for professional medical advice.*
