@@ -5,9 +5,9 @@ import { CheckCircle, Link2, Award, Lock } from 'lucide-react';
 export function TrustSection() {
   return (
     <section className="relative py-32 overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-yellow-500/5 to-transparent" />
-      
+      {/* Background gradient - softened radial for seamless blending */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(100,80,0,0.15)_0%,transparent_70%)]" />
+
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
           className="text-center mb-20"
@@ -110,7 +110,7 @@ function TrustCard({
     >
       {/* Solid dark background for better contrast */}
       <div className="absolute inset-0 bg-zinc-950/80 rounded-xl -z-10" />
-      
+
       {/* Glow effect */}
       <div className={`absolute inset-0 bg-gradient-to-br ${colors[color].glow} opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300 -z-10 rounded-xl`} />
 

@@ -5,9 +5,9 @@ import { BookOpen, Database, FileSearch, Shield } from 'lucide-react';
 export function MeetAgents() {
   return (
     <section className="relative py-32 overflow-hidden">
-      {/* Animated background gradient with more color */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-magenta-950/20 to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,0,255,0.08),transparent_50%)]" />
+      {/* Animated background gradient - softened to blend with adjacent sections */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,0,255,0.06)_0%,transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,0,255,0.05),transparent_50%)]" />
 
       <div className="container mx-auto px-6 relative z-10">
         <motion.div

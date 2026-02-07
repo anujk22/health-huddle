@@ -1,20 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { SpaceBackground, AuroraOverlay } from '../components/space-background';
 import { Header } from '../components/header-new';
 import { AgentOrb } from '../components/agent-orb';
-import { FileText, Activity, AlertTriangle, Plus, Send, Loader2 } from 'lucide-react';
+import { FileText, Activity, AlertTriangle, Plus, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { startDebateStream, parseSSEEvent, sendInterjection, skipQuestion } from '../services/api';
 import type {
   AgentType,
-  AgentMessage,
   Source,
   ConsensusResult,
   DebateSSEEvent
 } from '../types';
 
 interface DisplayMessage {
+  id: string; // Unique ID to prevent duplicates
   agent: string;
   agentKey: AgentType;
   content: string;
@@ -35,14 +35,63 @@ export function DebatePage() {
   const [pendingQuestion, setPendingQuestion] = useState<{ agent: string; question: string } | null>(null);
   const [interjectionInput, setInterjectionInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [questionTimer, setQuestionTimer] = useState<number>(10);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const consensusRef = useRef<ConsensusResult | null>(null);
+  const messagesRef = useRef<DisplayMessage[]>([]);
+
+  // Keep refs in sync
+  useEffect(() => {
+    consensusRef.current = consensus;
+  }, [consensus]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-skip timer for pending questions
+  useEffect(() => {
+    if (pendingQuestion) {
+      setQuestionTimer(10);
+
+      timerRef.current = setInterval(() => {
+        setQuestionTimer((prev) => {
+          if (prev <= 1) {
+            // Auto-skip when timer reaches 0
+            handleAutoSkip();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      };
+    }
+  }, [pendingQuestion]);
+
+  const handleAutoSkip = useCallback(async () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    try {
+      await skipQuestion();
+      setPendingQuestion(null);
+    } catch (error) {
+      console.error('Failed to skip question:', error);
+    }
+  }, []);
 
   // Start debate when page loads
   useEffect(() => {
@@ -99,7 +148,9 @@ export function DebatePage() {
         break;
 
       case 'agent_message':
+        const agentMsgId = `agent-${Date.now()}-${Math.random()}`;
         setMessages(prev => [...prev, {
+          id: agentMsgId,
           agent: event.agent,
           agentKey: event.agentKey,
           content: event.text,
@@ -116,13 +167,19 @@ export function DebatePage() {
         break;
 
       case 'patient_response':
-        setMessages(prev => [...prev, {
-          agent: 'You',
-          agentKey: 'guidelines', // Fallback, not used for styling patient messages
-          content: event.message,
-          sources: [],
-          isPatient: true,
-        }]);
+        // Only add if this exact message isn't already in the list
+        setMessages(prev => {
+          const exists = prev.some(m => m.isPatient && m.content === event.message);
+          if (exists) return prev;
+          return [...prev, {
+            id: `patient-${Date.now()}`,
+            agent: 'You',
+            agentKey: 'guidelines',
+            content: event.message,
+            sources: [],
+            isPatient: true,
+          }];
+        });
         setPendingQuestion(null);
         break;
 
@@ -131,12 +188,14 @@ export function DebatePage() {
         break;
 
       case 'consensus':
-        setConsensus({
+        const newConsensus = {
           text: event.text,
           urgency: event.urgency,
           sources: event.sources,
           agentMessages: event.agentMessages,
-        });
+        };
+        setConsensus(newConsensus);
+        consensusRef.current = newConsensus;
         break;
 
       case 'complete':
@@ -146,9 +205,9 @@ export function DebatePage() {
         setTimeout(() => {
           navigate('/results', {
             state: {
-              consensus,
+              consensus: consensusRef.current,
               patientData,
-              messages: messages.filter(m => !m.isPatient),
+              messages: messagesRef.current.filter(m => !m.isPatient),
             }
           });
         }, 1500);
@@ -161,20 +220,14 @@ export function DebatePage() {
     }
   };
 
+
   const handleSendInterjection = async () => {
     if (!interjectionInput.trim() || isSending) return;
 
     setIsSending(true);
     try {
       await sendInterjection(interjectionInput);
-      // Add to local messages immediately
-      setMessages(prev => [...prev, {
-        agent: 'You',
-        agentKey: 'guidelines',
-        content: interjectionInput,
-        sources: [],
-        isPatient: true,
-      }]);
+      // Don't add locally - let the backend send patient_response to avoid duplicates
       setInterjectionInput('');
       setPendingQuestion(null);
     } catch (error) {
@@ -185,6 +238,9 @@ export function DebatePage() {
   };
 
   const handleSkipQuestion = async () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
     try {
       await skipQuestion();
       setPendingQuestion(null);
@@ -267,9 +323,9 @@ export function DebatePage() {
             </motion.div>
 
             {/* Agent messages */}
-            {messages.map((message, index) => (
+            {messages.map((message) => (
               <motion.div
-                key={index}
+                key={message.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -307,24 +363,34 @@ export function DebatePage() {
               </motion.div>
             ))}
 
-            {/* Pending question */}
+            {/* Pending question with YES/NO buttons */}
             {pendingQuestion && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-purple-950/40 backdrop-blur-sm border border-purple-500/40 rounded-xl p-4"
               >
-                <div className="text-xs font-medium text-purple-400 mb-2 tracking-wider">
-                  {pendingQuestion.agent} ASKS
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium text-purple-400 tracking-wider">
+                    {pendingQuestion.agent} ASKS
+                  </div>
+                  <div className="text-xs text-gray-400 flex items-center gap-1">
+                    <span className={`font-mono ${questionTimer <= 3 ? 'text-red-400' : ''}`}>
+                      {questionTimer}s
+                    </span>
+                    <span>until auto-skip</span>
+                  </div>
                 </div>
                 <div className="text-gray-200 mb-4">{pendingQuestion.question}</div>
+
+                {/* Text input for answering */}
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={interjectionInput}
                     onChange={(e) => setInterjectionInput(e.target.value)}
                     placeholder="Type your answer..."
-                    className="flex-1 bg-zinc-900/80 border border-gray-700/50 rounded-lg px-4 py-2 text-sm
+                    className="flex-1 bg-zinc-900/80 border border-gray-700/50 rounded-lg px-4 py-3 text-sm
                       focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSendInterjection();
@@ -332,11 +398,11 @@ export function DebatePage() {
                   />
                   <button
                     onClick={handleSendInterjection}
-                    disabled={isSending}
-                    className="bg-purple-500 hover:bg-purple-600 text-black font-medium px-4 rounded-lg
+                    disabled={isSending || !interjectionInput.trim()}
+                    className="bg-purple-500 hover:bg-purple-600 text-white font-medium px-6 rounded-lg
                       transition-all duration-200 disabled:opacity-50"
                   >
-                    {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
                   </button>
                   <button
                     onClick={handleSkipQuestion}

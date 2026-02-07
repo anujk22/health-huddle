@@ -6,10 +6,10 @@ import { AgentOrb } from './agent-orb';
 export function DemoPreview() {
   return (
     <section className="relative py-32 overflow-hidden">
-      {/* Add colorful background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-950/15 to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,136,0.06),transparent_60%)]" />
-      
+      {/* Background gradient - softened radial for seamless blending */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,50,30,0.4)_0%,transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,136,0.04),transparent_60%)]" />
+
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
           className="text-center mb-16"
@@ -38,7 +38,7 @@ export function DemoPreview() {
           <div className="relative bg-black/40 border border-white/20 rounded-3xl overflow-hidden backdrop-blur-sm">
             {/* Solid dark background */}
             <div className="absolute inset-0 bg-zinc-950/90 rounded-3xl -z-10" />
-            
+
             {/* Top status bar with thinking indicator */}
             <div className="bg-gradient-to-r from-white/5 to-white/10 border-b border-white/10 px-6 py-4 flex items-center justify-center">
               <motion.div
