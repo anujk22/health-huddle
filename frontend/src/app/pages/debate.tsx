@@ -1,255 +1,45 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { SpaceBackground, AuroraOverlay } from '../components/space-background';
 import { Header } from '../components/header-new';
 import { AgentOrb } from '../components/agent-orb';
 import { FileText, Activity, AlertTriangle, Plus, Loader2 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router';
-import { startDebateStream, parseSSEEvent, sendInterjection, skipQuestion } from '../services/api';
-import type {
-  AgentType,
-  Source,
-  ConsensusResult,
-  DebateSSEEvent
-} from '../types';
-
-interface DisplayMessage {
-  id: string; // Unique ID to prevent duplicates
-  agent: string;
-  agentKey: AgentType;
-  content: string;
-  sources: Source[];
-  isPatient?: boolean;
-}
+import { useLocation } from 'react-router';
+import { useDebateStream } from '../hooks/useDebateStream';
+import type { AgentType, Source } from '../types';
 
 export function DebatePage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const patientData = (location.state as any)?.patientData;
-
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [currentSpeaker, setCurrentSpeaker] = useState<AgentType | null>(null); // Agent currently thinking
-  const [lastSpeaker, setLastSpeaker] = useState<AgentType | null>(null); // Last agent who sent a message
-  const [statusMessage, setStatusMessage] = useState<string>('Connecting to AI team...');
-  const [isDebating, setIsDebating] = useState(true);
-  const [consensus, setConsensus] = useState<ConsensusResult | null>(null);
-  const [pendingQuestion, setPendingQuestion] = useState<{ agent: string; question: string } | null>(null);
-  const [interjectionInput, setInterjectionInput] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [questionTimer, setQuestionTimer] = useState<number>(10);
-
-  const eventSourceRef = useRef<EventSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const consensusRef = useRef<ConsensusResult | null>(null);
-  const messagesRef = useRef<DisplayMessage[]>([]);
+  const [interjectionInput, setInterjectionInput] = useState('');
 
-  // Keep refs in sync
-  useEffect(() => {
-    consensusRef.current = consensus;
-  }, [consensus]);
+  const {
+    messages,
+    currentSpeaker,
+    lastSpeaker,
+    statusMessage,
+    isDebating,
+    pendingQuestion,
+    questionTimer,
+    isSending,
+    sendInterjection,
+    skipQuestion
+  } = useDebateStream(patientData);
 
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll logic remains in UI component
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Auto-skip timer for pending questions
-  useEffect(() => {
-    if (pendingQuestion) {
-      setQuestionTimer(10);
-
-      timerRef.current = setInterval(() => {
-        setQuestionTimer((prev) => {
-          if (prev <= 1) {
-            // Auto-skip when timer reaches 0
-            handleAutoSkip();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-      };
-    }
-  }, [pendingQuestion]);
-
-  const handleAutoSkip = useCallback(async () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    try {
-      await skipQuestion();
-      setPendingQuestion(null);
-    } catch (error) {
-      console.error('Failed to skip question:', error);
-    }
-  }, []);
-
-  // Start debate when page loads
-  useEffect(() => {
-    if (!patientData?.symptoms) {
-      // No symptoms, redirect to intake
-      navigate('/intake');
-      return;
-    }
-
-    const eventSource = startDebateStream(
-      patientData.symptoms,
-      patientData.severity,
-      patientData.duration
-    );
-    eventSourceRef.current = eventSource;
-
-    eventSource.onmessage = (event) => {
-      const parsed = parseSSEEvent(event.data);
-      if (!parsed) return;
-
-      handleSSEEvent(parsed);
-    };
-
-    eventSource.onerror = () => {
-      setStatusMessage('Connection lost. Please refresh to try again.');
-      setIsDebating(false);
-      eventSource.close();
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [patientData, navigate]);
-
-  const handleSSEEvent = (event: DebateSSEEvent) => {
-    switch (event.type) {
-      case 'connected':
-        setStatusMessage('Connected! AI team is analyzing your symptoms...');
-        break;
-
-      case 'status':
-        setStatusMessage(event.message);
-        break;
-
-      case 'agent_speaking':
-        // Map agent name to key
-        const agentKeyMap: Record<string, AgentType> = {
-          'Guidelines': 'guidelines',
-          'Evidence': 'evidence',
-          'Cases': 'cases',
-          'Safety': 'safety',
-        };
-        setCurrentSpeaker(agentKeyMap[event.agent] || null);
-        break;
-
-      case 'agent_message':
-        const agentMsgId = `agent-${Date.now()}-${Math.random()}`;
-        setMessages(prev => [...prev, {
-          id: agentMsgId,
-          agent: event.agent,
-          agentKey: event.agentKey,
-          content: event.text,
-          sources: event.sources || [],
-        }]);
-        // Set this agent as the last speaker (for pulsating effect)
-        setLastSpeaker(event.agentKey);
-        setCurrentSpeaker(null); // No longer thinking
-        break;
-
-      case 'agent_question':
-        setPendingQuestion({
-          agent: event.agent,
-          question: event.question,
-        });
-        break;
-
-      case 'patient_response':
-        // Only add if this exact message isn't already in the list
-        setMessages(prev => {
-          const exists = prev.some(m => m.isPatient && m.content === event.message);
-          if (exists) return prev;
-          return [...prev, {
-            id: `patient-${Date.now()}`,
-            agent: 'You',
-            agentKey: 'guidelines',
-            content: event.message,
-            sources: [],
-            isPatient: true,
-          }];
-        });
-        setPendingQuestion(null);
-        break;
-
-      case 'interjection':
-        // Already handled by patient_response in most cases
-        break;
-
-      case 'consensus':
-        const newConsensus = {
-          text: event.text,
-          urgency: event.urgency,
-          sources: event.sources,
-          agentMessages: event.agentMessages,
-        };
-        setConsensus(newConsensus);
-        consensusRef.current = newConsensus;
-        break;
-
-      case 'complete':
-        setIsDebating(false);
-        setStatusMessage('Consultation complete!');
-        // Navigate to results after a short delay
-        setTimeout(() => {
-          navigate('/results', {
-            state: {
-              consensus: consensusRef.current,
-              patientData,
-              messages: messagesRef.current.filter(m => !m.isPatient),
-            }
-          });
-        }, 1500);
-        break;
-
-      case 'error':
-        setStatusMessage(`Error: ${event.message}`);
-        setIsDebating(false);
-        break;
-    }
-  };
-
+  }, [messages, pendingQuestion]);
 
   const handleSendInterjection = async () => {
-    if (!interjectionInput.trim() || isSending) return;
-
-    setIsSending(true);
-    try {
-      await sendInterjection(interjectionInput);
-      // Don't add locally - let the backend send patient_response to avoid duplicates
-      setInterjectionInput('');
-      setPendingQuestion(null);
-    } catch (error) {
-      console.error('Failed to send interjection:', error);
-    } finally {
-      setIsSending(false);
-    }
+    if (!interjectionInput.trim()) return;
+    await sendInterjection(interjectionInput);
+    setInterjectionInput('');
   };
 
   const handleSkipQuestion = async () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    try {
-      await skipQuestion();
-      setPendingQuestion(null);
-    } catch (error) {
-      console.error('Failed to skip question:', error);
-    }
+    await skipQuestion();
   };
 
   const getSourceIcon = (source: Source) => {
@@ -262,14 +52,22 @@ export function DebatePage() {
     return <FileText className="w-3 h-3" />;
   };
 
-  const getAgentBorderColor = (agentKey: AgentType) => {
-    const colors: Record<AgentType, string> = {
-      guidelines: 'border-cyan-500/30',
-      evidence: 'border-purple-500/30',
-      cases: 'border-green-500/30',
-      safety: 'border-red-500/30',
+  // Helper for message styles with glow
+  const getMessageStyles = (agentKey: AgentType, isLatest: boolean) => {
+    const baseColors: Record<AgentType, string> = {
+      guidelines: 'bg-cyan-950/30 border-cyan-500/30 shadow-cyan-900/20',
+      evidence: 'bg-purple-950/30 border-purple-500/30 shadow-purple-900/20',
+      cases: 'bg-green-950/30 border-green-500/30 shadow-green-900/20',
+      safety: 'bg-red-950/30 border-red-500/30 shadow-red-900/20',
     };
-    return colors[agentKey];
+
+    let style = baseColors[agentKey] || 'bg-zinc-950/80 border-gray-800';
+
+    if (isLatest) {
+      style += ' shadow-[0_0_15px_rgba(0,0,0,0.3)] ring-1 ring-white/10';
+    }
+
+    return style;
   };
 
   const getAgentTextColor = (agentKey: AgentType) => {
@@ -283,15 +81,15 @@ export function DebatePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-black text-white overflow-hidden">
+    <div className="relative h-[100dvh] bg-black text-white overflow-hidden flex flex-col">
       <SpaceBackground />
       <AuroraOverlay />
       <Header />
 
-      <div className="relative z-10 min-h-screen flex flex-col pt-20">
+      <div className="relative z-10 flex-1 flex flex-col pt-20 max-w-5xl mx-auto w-full">
         {/* Agent orbs */}
-        <div className="px-6 mb-8 mt-6">
-          <div className="flex justify-center gap-8 max-w-2xl mx-auto">
+        <div className="px-6 mb-4 flex-shrink-0">
+          <div className="flex justify-center gap-4 md:gap-8 bg-zinc-950/50 backdrop-blur-md p-4 rounded-2xl border border-white/5 mx-auto w-fit">
             <AgentOrb type="guidelines" isSpeaking={currentSpeaker === 'guidelines' || lastSpeaker === 'guidelines'} isThinking={currentSpeaker === 'guidelines'} />
             <AgentOrb type="evidence" isSpeaking={currentSpeaker === 'evidence' || lastSpeaker === 'evidence'} isThinking={currentSpeaker === 'evidence'} />
             <AgentOrb type="cases" isSpeaking={currentSpeaker === 'cases' || lastSpeaker === 'cases'} isThinking={currentSpeaker === 'cases'} />
@@ -300,65 +98,83 @@ export function DebatePage() {
         </div>
 
         {/* Status message */}
-        <div className="text-center mb-4">
+        <div className="text-center mb-2 flex-shrink-0 h-6">
           <motion.div
             key={statusMessage}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-sm text-cyan-400/80"
+            className="flex items-center justify-center gap-2 text-xs font-mono text-cyan-400/80 uppercase tracking-widest"
           >
-            {isDebating && <Loader2 className="w-4 h-4 inline-block mr-2 animate-spin" />}
+            {isDebating && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+            )}
             {statusMessage}
           </motion.div>
         </div>
 
         {/* Conversation area */}
-        <div className="flex-1 px-6 pb-6 max-w-5xl mx-auto w-full overflow-y-auto">
-          <div className="space-y-4">
+        <div className="flex-1 px-4 md:px-6 pb-4 overflow-y-auto scroll-smooth custom-scrollbar">
+          <div className="space-y-6 max-w-3xl mx-auto">
             {/* User symptoms card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-teal-950/40 backdrop-blur-sm border border-teal-500/30 rounded-xl p-4"
+              className="bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 relative overflow-hidden group"
             >
-              <div className="text-xs font-medium text-teal-400 mb-2 tracking-wider">YOUR SYMPTOMS</div>
-              <div className="text-gray-200">{patientData?.symptoms || 'No symptoms provided'}</div>
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-white to-transparent opacity-50" />
+              <div className="text-xs font-bold text-white/50 mb-2 tracking-widest uppercase">Patient Case</div>
+              <div className="text-lg text-white font-medium leading-relaxed">{patientData?.symptoms || 'No symptoms provided'}</div>
             </motion.div>
 
             {/* Agent messages */}
-            {messages.map((message) => (
+            {messages.map((message, idx) => (
               <motion.div
                 key={message.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className={`backdrop-blur-sm border rounded-xl p-4
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className={`backdrop-blur-sm border rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden
                   ${message.isPatient
-                    ? 'bg-teal-950/40 border-teal-500/30 ml-12'
-                    : `bg-zinc-950/80 ${getAgentBorderColor(message.agentKey)}`
+                    ? 'bg-zinc-900/60 border-white/10 ml-8 md:ml-16'
+                    : getMessageStyles(message.agentKey, idx === messages.length - 1)
                   }`}
               >
-                <div className={`text-xs font-medium mb-3 tracking-wider uppercase
-                  ${message.isPatient ? 'text-teal-400' : getAgentTextColor(message.agentKey)}`}
-                >
-                  {message.agent}
+                {/* Glow effect for agents */}
+                {!message.isPatient && (
+                  <div className={`absolute top-0 right-0 w-32 h-32 bg-${getAgentTextColor(message.agentKey).split('-')[1]}-500/10 blur-3xl rounded-full -mr-10 -mt-10 pointer-events-none`} />
+                )}
+
+                <div className="flex items-center gap-3 mb-3">
+                  {!message.isPatient && (
+                    <div className={`w-2 h-2 rounded-full bg-${getAgentTextColor(message.agentKey).split('-')[1]}-400 shadow-[0_0_10px_currentColor]`} />
+                  )}
+                  <div className={`text-xs font-bold tracking-widest uppercase
+                    ${message.isPatient ? 'text-white/60' : getAgentTextColor(message.agentKey)}`}
+                  >
+                    {message.agent}
+                  </div>
+                  {/* Timestamp removed for cleaner look, or could add back small */}
                 </div>
 
-                <div className="text-gray-300 leading-relaxed mb-4">
+                <div className="text-gray-200 leading-relaxed text-sm md:text-base">
                   {message.content}
                 </div>
 
                 {/* Sources */}
                 {message.sources && message.sources.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/5">
                     {message.sources.map((source, idx) => (
                       <div
                         key={idx}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs
-                          bg-slate-800/50 text-slate-300 border border-slate-700/30"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px]
+                          bg-black/40 text-white/60 border border-white/5 hover:bg-white/5 hover:border-white/10 transition-colors cursor-help"
+                        title={source.title}
                       >
                         {getSourceIcon(source)}
-                        <span className="truncate max-w-[200px]">{source.title}</span>
+                        <span className="truncate max-w-[150px]">{source.title}</span>
                       </div>
                     ))}
                   </div>
@@ -371,30 +187,33 @@ export function DebatePage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-purple-950/40 backdrop-blur-sm border border-purple-500/40 rounded-xl p-4"
+                className="bg-indigo-950/40 backdrop-blur-md border border-indigo-500/40 rounded-2xl p-6 shadow-2xl relative overflow-hidden"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-medium text-purple-400 tracking-wider">
-                    {pendingQuestion.agent} ASKS
+                <div className="absolute inset-0 bg-indigo-500/5 animate-pulse" />
+
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                    <div className="text-xs font-bold text-indigo-300 tracking-widest uppercase">
+                      {pendingQuestion.agent} ASKS
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-400 flex items-center gap-1">
-                    <span className={`font-mono ${questionTimer <= 3 ? 'text-red-400' : ''}`}>
-                      {questionTimer}s
-                    </span>
-                    <span>until auto-skip</span>
+                  <div className="text-xs text-indigo-300/70 font-mono bg-indigo-950/50 px-2 py-1 rounded border border-indigo-500/20">
+                    AUTO-SKIP: <span className={`${questionTimer <= 3 ? 'text-red-400' : 'text-white'}`}>{questionTimer}s</span>
                   </div>
                 </div>
-                <div className="text-gray-200 mb-4">{pendingQuestion.question}</div>
+                <div className="text-white text-lg font-medium mb-6 relative z-10">{pendingQuestion.question}</div>
 
-                {/* Text input for answering */}
-                <div className="flex gap-2">
+                {/* Text input for answering - duplicated logic but focused styling */}
+                <div className="flex gap-2 relative z-10">
                   <input
                     type="text"
                     value={interjectionInput}
                     onChange={(e) => setInterjectionInput(e.target.value)}
                     placeholder="Type your answer..."
-                    className="flex-1 bg-zinc-900/80 border border-gray-700/50 rounded-lg px-4 py-3 text-sm
-                      focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20"
+                    autoFocus
+                    className="flex-1 bg-black/50 border border-indigo-500/30 rounded-xl px-4 py-3 text-white
+                      focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/50 placeholder:text-white/20"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSendInterjection();
                     }}
@@ -402,15 +221,15 @@ export function DebatePage() {
                   <button
                     onClick={handleSendInterjection}
                     disabled={isSending || !interjectionInput.trim()}
-                    className="bg-purple-500 hover:bg-purple-600 text-white font-medium px-6 rounded-lg
-                      transition-all duration-200 disabled:opacity-50"
+                    className="bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-6 rounded-xl
+                      transition-all duration-200 disabled:opacity-50 shadow-lg shadow-indigo-500/20"
                   >
-                    {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+                    {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send'}
                   </button>
                   <button
                     onClick={handleSkipQuestion}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-gray-400 font-medium px-4 rounded-lg
-                      transition-all duration-200"
+                    className="bg-white/5 hover:bg-white/10 text-white/60 font-medium px-4 rounded-xl
+                      transition-all duration-200 border border-white/5"
                   >
                     Skip
                   </button>
@@ -418,22 +237,22 @@ export function DebatePage() {
               </motion.div>
             )}
 
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} className="h-4" />
           </div>
         </div>
 
         {/* Input area - for interjections */}
-        <div className="p-6 border-t border-gray-800/50 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-5xl mx-auto">
+        <div className="flex-shrink-0 p-4 md:p-6 border-t border-white/10 bg-black/80 backdrop-blur-xl">
+          <div className="max-w-3xl mx-auto">
             <div className="flex gap-3">
               <input
                 type="text"
                 value={interjectionInput}
                 onChange={(e) => setInterjectionInput(e.target.value)}
-                placeholder='Add more details, correct something, or tell them about new symptoms...'
-                className="flex-1 bg-zinc-900/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm
-                  focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20
-                  placeholder:text-gray-600"
+                placeholder='Add details or ask a question...'
+                className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white shadow-inner
+                  focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50
+                  placeholder:text-white/20"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSendInterjection();
                 }}
@@ -442,19 +261,19 @@ export function DebatePage() {
               <button
                 onClick={handleSendInterjection}
                 disabled={!isDebating || isSending || !interjectionInput.trim()}
-                className="bg-cyan-500 hover:bg-cyan-600 text-black font-medium px-6 rounded-xl
-                  transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-white text-black font-bold px-5 rounded-xl
+                  hover:bg-cyan-50 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(255,255,255,0.2)]"
               >
                 {isSending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-5 h-5" />
                 )}
-                Add
+                <span className="hidden md:inline">Add</span>
               </button>
             </div>
-            <div className="text-xs text-gray-500 mt-2 text-center">
-              Examples: "I forgot to mention I have a fever" • "The pain just got worse" • "I'm female, 28 years old"
+            <div className="text-[10px] md:text-xs text-white/30 mt-2 text-center font-mono">
+              AI medical debate in progress. Interject anytime.
             </div>
           </div>
         </div>
