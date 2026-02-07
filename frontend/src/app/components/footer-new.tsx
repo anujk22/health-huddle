@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'motion/react';
-import { AlertTriangle, Activity } from 'lucide-react';
+import { Github } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -18,44 +18,37 @@ export function Footer() {
               transition={{ delay: 0.2 }}
             >
               <div className="relative">
-                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-magenta-500 rounded-lg flex items-center justify-center">
-                  <Activity className="w-5 h-5 text-white" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-magenta-500 rounded-lg blur-lg opacity-50" />
+                <img
+                  src="/images/healthHuddleTransparent.png"
+                  alt="HealthHuddle"
+                  className="h-8 w-auto object-contain"
+                />
               </div>
-              <div className="text-sm text-white/40">
-                © 2026 HealthHuddle. Not for emergency use.
+              <div className="flex flex-col gap-1">
+                <div className="text-sm font-medium text-white">
+                  © 2026 HealthHuddle, not for emergency use.
+                </div>
+                <div className="text-xs text-white">
+                  Created for UHACCS 2026 by Anuj and Safwan
+                </div>
               </div>
             </motion.div>
 
-            {/* Links */}
+            {/* GitHub Link */}
             <motion.div
-              className="flex items-center gap-6 text-sm text-white/40"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
             >
               <motion.a
-                href="#"
-                className="hover:text-cyan-400 transition-colors"
-                whileHover={{ scale: 1.05 }}
+                href="https://github.com/anujk22"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors"
+                whileHover={{ scale: 1.1 }}
               >
-                Privacy Policy
-              </motion.a>
-              <motion.a
-                href="#"
-                className="hover:text-cyan-400 transition-colors"
-                whileHover={{ scale: 1.05 }}
-              >
-                Terms of Service
-              </motion.a>
-              <motion.a
-                href="#"
-                className="hover:text-cyan-400 transition-colors"
-                whileHover={{ scale: 1.05 }}
-              >
-                Contact
+                <Github className="w-6 h-6" />
               </motion.a>
             </motion.div>
           </div>

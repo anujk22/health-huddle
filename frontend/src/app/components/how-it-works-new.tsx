@@ -5,9 +5,8 @@ import { MessageSquare, Sparkles, Target } from 'lucide-react';
 export function HowItWorks() {
   return (
     <section className="relative py-32 overflow-hidden">
-      {/* Simplified background - no harsh lines */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-cyan-950/10 to-black/50" />
-      
+      {/* Clean black background - no tint */}
+
       {/* Animated floating particles */}
       <motion.div
         className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-cyan-400/40"
@@ -47,7 +46,7 @@ export function HowItWorks() {
           delay: 0.5,
         }}
       />
-      
+
       {/* Section header */}
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
@@ -57,10 +56,10 @@ export function HowItWorks() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-5xl md:text-6xl mb-6 bg-gradient-to-r from-white via-cyan-200 to-white bg-clip-text text-transparent">
+          <h2 className="text-5xl md:text-6xl mb-6 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
             How It Works
           </h2>
-          <p className="text-xl text-white/60 max-w-2xl mx-auto">
+          <p className="text-xl text-white max-w-2xl mx-auto">
             Three simple steps to get AI-powered medical insights
           </p>
         </motion.div>
@@ -69,7 +68,7 @@ export function HowItWorks() {
         <div className="max-w-6xl mx-auto">
           <div className="relative">
             {/* Connecting line */}
-            <div className="absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent hidden lg:block" />
+            <div className="absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-pink-500/30 to-transparent hidden lg:block" />
 
             <div className="grid lg:grid-cols-3 gap-12 lg:gap-8">
               <Step
@@ -77,7 +76,7 @@ export function HowItWorks() {
                 icon={<MessageSquare className="w-12 h-12" />}
                 title="Describe Symptoms"
                 description="Share what you're experiencing in your own words. Our AI understands natural language."
-                color="cyan"
+                color="white"
                 delay={0}
               />
               <Step
@@ -85,7 +84,7 @@ export function HowItWorks() {
                 icon={<Sparkles className="w-12 h-12" />}
                 title="AI Agents Debate"
                 description="Watch four specialized AI agents analyze your case from different medical perspectives in real time."
-                color="magenta"
+                color="yellow"
                 delay={0.2}
               />
               <Step
@@ -93,7 +92,7 @@ export function HowItWorks() {
                 icon={<Target className="w-12 h-12" />}
                 title="Get Insights"
                 description="Receive a transparent diagnosis with confidence scores, urgency levels, and cited medical sources."
-                color="green"
+                color="pink"
                 delay={0.4}
               />
             </div>
@@ -116,13 +115,13 @@ function Step({
   icon: React.ReactNode;
   title: string;
   description: string;
-  color: 'cyan' | 'magenta' | 'green';
+  color: 'white' | 'yellow' | 'pink';
   delay: number;
 }) {
   const colors = {
-    cyan: 'from-cyan-500/20 to-transparent border-cyan-500/40 text-cyan-400',
-    magenta: 'from-magenta-500/20 to-transparent border-magenta-500/40 text-magenta-400',
-    green: 'from-green-500/20 to-transparent border-green-500/40 text-green-400',
+    white: 'from-white/10 to-transparent border-white/40 text-white shadow-[0_0_30px_rgba(255,255,255,0.3)]',
+    yellow: 'from-yellow-400/20 to-transparent border-yellow-400/40 text-yellow-400',
+    pink: 'from-pink-500/20 to-transparent border-pink-500/40 text-pink-400',
   };
 
   return (

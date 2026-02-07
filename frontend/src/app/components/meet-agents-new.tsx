@@ -1,13 +1,12 @@
 'use client';
 import { motion } from 'motion/react';
 import { BookOpen, Database, FileSearch, Shield } from 'lucide-react';
+import GradientText from './gradient-text';
 
 export function MeetAgents() {
   return (
     <section className="relative py-32 overflow-hidden">
-      {/* Animated background gradient - softened to blend with adjacent sections */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,0,255,0.06)_0%,transparent_70%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,0,255,0.05),transparent_50%)]" />
+      {/* Clean black background - no tint */}
 
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
@@ -17,10 +16,14 @@ export function MeetAgents() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-5xl md:text-6xl mb-6 bg-gradient-to-r from-white via-cyan-200 to-white bg-clip-text text-transparent">
+          <GradientText
+            colors={["#A855F7", "#EC4899", "#A855F7"]}
+            animationSpeed={6}
+            className="text-5xl md:text-6xl mb-6"
+          >
             The AI Squad
-          </h2>
-          <p className="text-xl text-cyan-100/70 max-w-2xl mx-auto">
+          </GradientText>
+          <p className="text-xl text-white max-w-2xl mx-auto">
             Four specialized agents working together to analyze your symptoms
           </p>
         </motion.div>

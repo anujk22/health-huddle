@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "motion/react";
-import { ArrowRight, CheckCircle2, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import GradientText from './gradient-text';
@@ -90,7 +90,7 @@ export function HeroSection() {
           {/* Main content */}
           <div className="text-center mb-16 mt-8">
             <motion.h1
-              className="text-5xl md:text-7xl lg:text-8xl mb-8 leading-tight"
+              className="text-5xl md:text-7xl lg:text-8xl mb-8 leading-normal"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -113,7 +113,7 @@ export function HeroSection() {
             </motion.h1>
 
             <motion.p
-              className="text-lg md:text-2xl text-cyan-100/90 max-w-3xl mx-auto mb-12"
+              className="text-lg md:text-2xl text-white max-w-3xl mx-auto mb-12"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
@@ -168,8 +168,8 @@ export function HeroSection() {
                 <span>Results in seconds</span>
               </div>
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-cyan-400" />
-                <span>No signup needed</span>
+                <BookOpen className="w-5 h-5 text-cyan-400" />
+                <span>Backed by sources</span>
               </div>
             </motion.div>
           </div>

@@ -2,13 +2,12 @@
 import { motion } from 'motion/react';
 import { Play, Sparkles } from 'lucide-react';
 import { AgentOrb } from './agent-orb';
+import GradientText from './gradient-text';
 
 export function DemoPreview() {
   return (
     <section className="relative py-32 overflow-hidden">
-      {/* Background gradient - softened radial for seamless blending */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,50,30,0.4)_0%,transparent_70%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,136,0.04),transparent_60%)]" />
+      {/* Clean black background - no tint */}
 
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
@@ -18,11 +17,15 @@ export function DemoPreview() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-5xl md:text-6xl mb-6 bg-gradient-to-r from-white via-green-200 to-white bg-clip-text text-transparent">
+          <GradientText
+            colors={["#00D4FF", "#0891b2", "#00D4FF"]}
+            animationSpeed={6}
+            className="text-5xl md:text-6xl mb-6"
+          >
             See It In Action
-          </h2>
-          <p className="text-xl text-white/60 max-w-2xl mx-auto">
-            Watch how our AI agents collaborate to analyze a real medical case
+          </GradientText>
+          <p className="text-xl text-white max-w-2xl mx-auto">
+            Watch how four distinct AI agents collaborate to analyze a real medical case
           </p>
         </motion.div>
 
